@@ -5,8 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
+import { AuthProvider } from "./contexts/AuthContext";
+import { PrivateRoute } from "./components/auth/PrivateRoute";
 
 // Import all pages
+import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
@@ -27,23 +30,95 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Layout>
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/employees" element={<Employees />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/attendance" element={<Attendance />} />
-            <Route path="/payroll" element={<Payroll />} />
-            <Route path="/departments" element={<Departments />} />
-            <Route path="/designations" element={<Designations />} />
-            <Route path="/performance" element={<Performance />} />
+            <Route path="/login" element={<Login />} />
+            
+            <Route path="/" element={
+              <PrivateRoute>
+                <Layout>
+                  <Index />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/projects" element={
+              <PrivateRoute>
+                <Layout>
+                  <Projects />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/employees" element={
+              <PrivateRoute>
+                <Layout>
+                  <Employees />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/roles" element={
+              <PrivateRoute>
+                <Layout>
+                  <Roles />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/tasks" element={
+              <PrivateRoute>
+                <Layout>
+                  <Tasks />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/attendance" element={
+              <PrivateRoute>
+                <Layout>
+                  <Attendance />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/payroll" element={
+              <PrivateRoute>
+                <Layout>
+                  <Payroll />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/departments" element={
+              <PrivateRoute>
+                <Layout>
+                  <Departments />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/designations" element={
+              <PrivateRoute>
+                <Layout>
+                  <Designations />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
+            <Route path="/performance" element={
+              <PrivateRoute>
+                <Layout>
+                  <Performance />
+                </Layout>
+              </PrivateRoute>
+            } />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Layout>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

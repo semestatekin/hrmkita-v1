@@ -1,45 +1,79 @@
 
 import React from "react";
-import { Bell, Menu, Search } from "lucide-react";
+import { Menu, X, Bell, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-type HeaderProps = {
+interface HeaderProps {
   toggleSidebar: () => void;
   title: string;
-};
+}
 
 export const Header: React.FC<HeaderProps> = ({ toggleSidebar, title }) => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center gap-4 px-4 sticky top-0 z-10">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="md:hidden"
-        onClick={toggleSidebar}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-      <h1 className="text-xl font-bold">{title}</h1>
-      <div className="hidden md:flex max-w-md flex-1 ml-4">
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            type="search"
-            placeholder="Cari..."
-            className="w-full pl-9 rounded-md bg-gray-50 focus:bg-white"
-          />
-        </div>
-      </div>
-      <div className="ml-auto flex items-center gap-4">
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-4 md:px-6">
+      <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
-          className="relative"
+          className="md:hidden"
+          onClick={toggleSidebar}
         >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 bg-hrm-primary rounded-full"></span>
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle sidebar</span>
         </Button>
+        <h1 className="text-xl font-semibold">{title}</h1>
+      </div>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full border border-gray-200"
+            >
+              <User className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Akun Saya</DropdownMenuLabel>
+            {user && (
+              <DropdownMenuLabel className="font-normal text-sm text-muted-foreground">
+                {user.name}
+              </DropdownMenuLabel>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Profil</DropdownMenuItem>
+            <DropdownMenuItem>Pengaturan</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-500">
+              Keluar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
