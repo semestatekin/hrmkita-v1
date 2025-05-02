@@ -1,104 +1,126 @@
 
-import { Project } from "@/types/project";
-import { getLocalData, setLocalData } from "@/utils/localStorage";
+import { Project } from '@/types/project';
+import { setLocalData, getLocalData } from '@/utils/localStorage';
 
-const PROJECTS_KEY = "hrm_projects";
+const PROJECTS_KEY = 'hrm_projects';
 
-// Sample project data
+// Sample initial data
 const initialProjects: Project[] = [
   {
     id: 1,
-    name: "Website E-commerce",
-    client: "PT. Sejahtera Abadi",
-    startDate: "12 Mei 2023",
-    deadline: "20 Agustus 2023",
-    status: "in-progress",
-    progress: 75,
-    team: 5,
+    name: 'Website E-commerce',
+    description: 'Pembuatan website e-commerce untuk PT. Maju Jaya',
+    startDate: '2023-06-01',
+    endDate: '2023-08-15',
+    status: 'in-progress',
+    client: 'PT. Maju Jaya',
+    budget: 'Rp 50.000.000',
+    manager: 'Budi Santoso',
+    progress: 65,
+    team: ['Andi Wijaya', 'Siti Nurhayati', 'Rudi Hartono']
   },
   {
     id: 2,
-    name: "Aplikasi Mobile Perbankan",
-    client: "Bank Makmur",
-    startDate: "3 Maret 2023",
-    deadline: "15 Oktober 2023",
-    status: "in-progress",
-    progress: 45,
-    team: 8,
+    name: 'Aplikasi Mobile Banking',
+    description: 'Pengembangan aplikasi mobile banking untuk Bank XYZ',
+    startDate: '2023-05-10',
+    endDate: '2023-10-30',
+    status: 'in-progress',
+    client: 'Bank XYZ',
+    budget: 'Rp 120.000.000',
+    manager: 'Dewi Sartika',
+    progress: 40,
+    team: ['Maya Indah', 'Joko Widodo', 'Ani Susanti', 'Dian Sastro']
   },
   {
     id: 3,
-    name: "Dashboard Analitik",
-    client: "PT. Data Insights",
-    startDate: "20 Jan 2023",
-    deadline: "10 Juni 2023",
-    status: "completed",
+    name: 'Sistem Manajemen Inventaris',
+    description: 'Pembuatan sistem manajemen inventaris untuk gudang',
+    startDate: '2023-04-15',
+    endDate: '2023-07-20',
+    status: 'completed',
+    client: 'PT. Logistik Cepat',
+    budget: 'Rp 35.000.000',
+    manager: 'Andi Wijaya',
     progress: 100,
-    team: 3,
+    team: ['Budi Santoso', 'Rini Wulandari']
   },
   {
     id: 4,
-    name: "Sistem Manajemen Inventori",
-    client: "CV. Logistik Cepat",
-    startDate: "5 April 2023",
-    deadline: "30 Juli 2023",
-    status: "delayed",
-    progress: 35,
-    team: 4,
+    name: 'Redesign UI/UX Website',
+    description: 'Perbaikan antarmuka pengguna website korporat',
+    startDate: '2023-07-01',
+    endDate: '2023-08-15',
+    status: 'not-started',
+    client: 'PT. Teknologi Maju',
+    budget: 'Rp 25.000.000',
+    manager: 'Siti Nurhayati',
+    progress: 0,
+    team: ['Dian Sastro', 'Maya Indah']
   },
   {
     id: 5,
-    name: "Platform Pembelajaran Online",
-    client: "Yayasan Pendidikan Masa Depan",
-    startDate: "1 Februari 2023",
-    deadline: "25 Juli 2023",
-    status: "in-progress",
-    progress: 65,
-    team: 6,
-  },
+    name: 'Implementasi CRM',
+    description: 'Implementasi dan kustomisasi sistem CRM',
+    startDate: '2023-03-10',
+    endDate: '2023-06-30',
+    status: 'on-hold',
+    client: 'PT. Sejahtera Abadi',
+    budget: 'Rp 75.000.000',
+    manager: 'Joko Widodo',
+    progress: 60,
+    team: ['Ani Susanti', 'Rudi Hartono', 'Dewi Sartika']
+  }
 ];
 
-const initializeLocalStorage = () => {
-  if (!localStorage.getItem(PROJECTS_KEY)) {
+// Initialize projects in localStorage if they don't exist
+const initializeProjects = () => {
+  const existingProjects = getLocalData<Project[]>(PROJECTS_KEY, null);
+  if (!existingProjects) {
     setLocalData(PROJECTS_KEY, initialProjects);
   }
 };
 
-// CRUD operations
+// Get all projects
 export const getProjects = (): Project[] => {
-  initializeLocalStorage();
-  return getLocalData(PROJECTS_KEY, []);
+  initializeProjects();
+  return getLocalData<Project[]>(PROJECTS_KEY, []);
 };
 
+// Get a single project by id
 export const getProjectById = (id: number): Project | undefined => {
   const projects = getProjects();
-  return projects.find((project) => project.id === id);
+  return projects.find(project => project.id === id);
 };
 
-export const createProject = (project: Omit<Project, "id">): Project => {
+// Add a new project
+export const addProject = (project: Omit<Project, 'id'>): Project => {
   const projects = getProjects();
-  const newId = projects.length > 0 
-    ? Math.max(...projects.map(p => p.id)) + 1 
-    : 1;
-
-  const newProject = {
+  const newId = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
+  
+  const newProject: Project = {
     ...project,
     id: newId
   };
-
+  
   setLocalData(PROJECTS_KEY, [...projects, newProject]);
   return newProject;
 };
 
-export const updateProject = (project: Project): void => {
+// Update an existing project
+export const updateProject = (updatedProject: Project): Project => {
   const projects = getProjects();
-  const updatedProjects = projects.map((p) =>
-    p.id === project.id ? project : p
+  const updatedProjects = projects.map(project => 
+    project.id === updatedProject.id ? updatedProject : project
   );
+  
   setLocalData(PROJECTS_KEY, updatedProjects);
+  return updatedProject;
 };
 
+// Delete a project
 export const deleteProject = (id: number): void => {
   const projects = getProjects();
-  setLocalData(PROJECTS_KEY, projects.filter((p) => p.id !== id));
+  const filteredProjects = projects.filter(project => project.id !== id);
+  setLocalData(PROJECTS_KEY, filteredProjects);
 };
