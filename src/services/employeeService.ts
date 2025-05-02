@@ -1,8 +1,11 @@
 
 import { Employee } from "@/types/employee";
+import { getLocalData, setLocalData } from "@/utils/localStorage";
 
-// Mock employee data
-let employees: Employee[] = [
+const EMPLOYEES_KEY = "hrm_employees";
+
+// Initial employee data
+const initialEmployees: Employee[] = [
   {
     id: 1,
     name: "Budi Santoso",
@@ -67,39 +70,81 @@ let employees: Employee[] = [
   },
 ];
 
+// Initialize localStorage with initial data if empty
+const initializeLocalStorage = () => {
+  if (!localStorage.getItem(EMPLOYEES_KEY)) {
+    setLocalData(EMPLOYEES_KEY, initialEmployees);
+  }
+};
+
 // Get all employees
 export const getEmployees = (): Employee[] => {
-  return [...employees];
+  initializeLocalStorage();
+  return getLocalData(EMPLOYEES_KEY, []);
 };
 
 // Get employee by id
 export const getEmployeeById = (id: number): Employee | undefined => {
+  const employees = getEmployees();
   return employees.find(emp => emp.id === id);
 };
 
 // Create a new employee
 export const createEmployee = (employee: Omit<Employee, "id">): Employee => {
+  const employees = getEmployees();
   const newEmployee = {
     ...employee,
-    id: Math.max(0, ...employees.map(e => e.id)) + 1
+    id: employees.length > 0 ? Math.max(0, ...employees.map(e => e.id)) + 1 : 1
   };
-  employees.push(newEmployee);
+  
+  setLocalData(EMPLOYEES_KEY, [...employees, newEmployee]);
   return newEmployee;
 };
 
 // Update an employee
 export const updateEmployee = (employee: Employee): Employee => {
+  const employees = getEmployees();
   const index = employees.findIndex(emp => emp.id === employee.id);
+  
   if (index !== -1) {
-    employees[index] = employee;
+    const updatedEmployees = [...employees];
+    updatedEmployees[index] = employee;
+    setLocalData(EMPLOYEES_KEY, updatedEmployees);
     return employee;
   }
+  
   throw new Error(`Employee with id ${employee.id} not found`);
 };
 
 // Delete an employee
 export const deleteEmployee = (id: number): boolean => {
-  const initialLength = employees.length;
-  employees = employees.filter(emp => emp.id !== id);
-  return employees.length < initialLength;
+  const employees = getEmployees();
+  const updatedEmployees = employees.filter(emp => emp.id !== id);
+  
+  if (updatedEmployees.length < employees.length) {
+    setLocalData(EMPLOYEES_KEY, updatedEmployees);
+    return true;
+  }
+  
+  return false;
+};
+
+// Add or update employee local storage settings
+export const saveEmployeeSettings = (settings: any) => {
+  setLocalData("hrm_employee_settings", settings);
+};
+
+// Get employee local storage settings
+export const getEmployeeSettings = () => {
+  return getLocalData("hrm_employee_settings", {
+    viewMode: "list",
+    columns: [
+      { id: "name", label: "Nama", isVisible: true },
+      { id: "position", label: "Jabatan", isVisible: true },
+      { id: "department", label: "Departemen", isVisible: true },
+      { id: "contact", label: "Kontak", isVisible: true },
+      { id: "joinDate", label: "Tanggal Bergabung", isVisible: true },
+      { id: "status", label: "Status", isVisible: true },
+    ]
+  });
 };

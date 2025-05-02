@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Filter, MoreHorizontal, Mail, Phone, LayoutGrid, LayoutList } from "lucide-react";
 import { Employee, statusColors, statusLabels } from "@/types/employee";
-import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from "@/services/employeeService";
+import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getEmployeeSettings, saveEmployeeSettings } from "@/services/employeeService";
 import { toast } from "sonner";
 import EmployeeForm from "@/components/employees/EmployeeForm";
 import EmployeeCard from "@/components/employees/EmployeeCard";
@@ -24,22 +24,24 @@ const Employees: React.FC = () => {
   const [currentEmployee, setCurrentEmployee] = useState<Employee | undefined>(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-
-  // Column visibility state
-  const [columns, setColumns] = useState([
-    { id: "name", label: "Nama", isVisible: true },
-    { id: "position", label: "Jabatan", isVisible: true },
-    { id: "department", label: "Departemen", isVisible: true },
-    { id: "contact", label: "Kontak", isVisible: true },
-    { id: "joinDate", label: "Tanggal Bergabung", isVisible: true },
-    { id: "status", label: "Status", isVisible: true },
-  ]);
+  
+  // Get saved settings from localStorage
+  const settings = getEmployeeSettings();
+  const [viewMode, setViewMode] = useState<"list" | "grid">(settings.viewMode);
+  const [columns, setColumns] = useState(settings.columns);
 
   // Load employees data
   useEffect(() => {
     loadEmployees();
   }, []);
+
+  // Save settings to localStorage when they change
+  useEffect(() => {
+    saveEmployeeSettings({
+      viewMode,
+      columns
+    });
+  }, [viewMode, columns]);
 
   const loadEmployees = () => {
     const loadedEmployees = getEmployees();
