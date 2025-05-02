@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Employee } from "@/types/employee";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface EmployeeFormProps {
   employee?: Employee;
@@ -37,9 +38,15 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     salary: "",
   });
 
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (employee) {
       setFormData(employee);
+      if (employee.avatar) {
+        setAvatarPreview(employee.avatar);
+      }
     }
   }, [employee]);
 
@@ -69,6 +76,25 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     }
   };
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAvatarFile(file);
+      const fileUrl = URL.createObjectURL(file);
+      setAvatarPreview(fileUrl);
+      
+      // Convert to data URL for storage
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          avatar: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -76,6 +102,33 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex justify-center mb-4">
+        <div className="relative">
+          <Avatar className="w-24 h-24">
+            {avatarPreview ? (
+              <AvatarImage src={avatarPreview} alt={formData.name} />
+            ) : (
+              <AvatarFallback className="bg-gray-200 text-gray-600 text-2xl">
+                {formData.name ? formData.name.charAt(0) : "U"}
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <label 
+            htmlFor="avatar-upload" 
+            className="absolute bottom-0 right-0 bg-primary text-white rounded-full p-1 cursor-pointer hover:bg-primary/90 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            <input 
+              id="avatar-upload" 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={handleAvatarChange} 
+            />
+          </label>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="name">Nama Lengkap</Label>

@@ -6,14 +6,16 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Filter, MoreHorizontal, Mail, Phone, LayoutGrid, LayoutList } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Mail, Phone, LayoutGrid, LayoutList, Eye, ArrowLeft } from "lucide-react";
 import { Employee, statusColors, statusLabels } from "@/types/employee";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee, getEmployeeSettings, saveEmployeeSettings } from "@/services/employeeService";
 import { toast } from "sonner";
 import EmployeeForm from "@/components/employees/EmployeeForm";
 import EmployeeCard from "@/components/employees/EmployeeCard";
+import EmployeeDetail from "@/components/employees/EmployeeDetail";
 import ColumnVisibilityDropdown from "@/components/employees/ColumnVisibilityDropdown";
 import { format } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -36,6 +38,9 @@ const Employees: React.FC = () => {
     
   const [viewMode, setViewMode] = useState<"list" | "grid">(initialViewMode);
   const [columns, setColumns] = useState(settings.columns);
+  
+  // New state for detail view
+  const [detailViewEmployee, setDetailViewEmployee] = useState<Employee | null>(null);
 
   // Load employees data
   useEffect(() => {
@@ -136,6 +141,19 @@ const Employees: React.FC = () => {
     }
   };
 
+  const handleDetailSave = (updatedEmployee: Employee) => {
+    try {
+      updateEmployee(updatedEmployee);
+      loadEmployees();
+      // Update detail view with the latest data
+      setDetailViewEmployee(updatedEmployee);
+      toast.success("Data karyawan berhasil diperbarui");
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menyimpan data");
+      console.error(error);
+    }
+  };
+
   const toggleViewMode = () => {
     setViewMode(viewMode === "list" ? "grid" : "list");
   };
@@ -157,6 +175,21 @@ const Employees: React.FC = () => {
       return dateString;
     }
   };
+  
+  const handleViewDetails = (employee: Employee) => {
+    setDetailViewEmployee(employee);
+  };
+  
+  // If we're in detail view mode, render the detail component
+  if (detailViewEmployee) {
+    return (
+      <EmployeeDetail 
+        employee={detailViewEmployee}
+        onBack={() => setDetailViewEmployee(null)}
+        onSave={handleDetailSave}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -241,11 +274,15 @@ const Employees: React.FC = () => {
                     {columns.find(c => c.id === "name")?.isVisible && (
                       <td className="table-data">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="font-medium text-gray-600">
-                              {employee.name.charAt(0)}
-                            </span>
-                          </div>
+                          <Avatar className="h-10 w-10">
+                            {employee.avatar ? (
+                              <AvatarImage src={employee.avatar} alt={employee.name} />
+                            ) : (
+                              <AvatarFallback className="bg-gray-200 text-gray-600">
+                                {employee.name.charAt(0)}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
                           <div className="ml-4">
                             <div className="font-medium text-gray-900">{employee.name}</div>
                           </div>
@@ -291,24 +328,34 @@ const Employees: React.FC = () => {
                       </td>
                     )}
                     <td className="table-data">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-500 hover:text-red-700"
-                            onClick={() => handleDeleteClick(employee.id)}
-                          >
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleViewDetails(employee)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleDeleteClick(employee.id)}
+                            >
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -331,6 +378,7 @@ const Employees: React.FC = () => {
                 employee={employee}
                 onEdit={handleEditEmployee}
                 onDelete={handleDeleteClick}
+                onViewDetails={handleViewDetails}
               />
             ))
           ) : (

@@ -4,19 +4,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Employee, statusColors, statusLabels } from "@/types/employee";
-import { Mail, Phone, Calendar, Building, Edit, Trash2 } from "lucide-react";
+import { Mail, Phone, Calendar, Building, Edit, Trash2, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface EmployeeCardProps {
   employee: Employee;
   onEdit: (employee: Employee) => void;
   onDelete: (id: number) => void;
+  onViewDetails: (employee: Employee) => void;
 }
 
 const EmployeeCard: React.FC<EmployeeCardProps> = ({
   employee,
   onEdit,
   onDelete,
+  onViewDetails,
 }) => {
   const formatDate = (dateString: string) => {
     try {
@@ -32,9 +35,15 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-              <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold text-gray-600">
-                {employee.name.charAt(0)}
-              </div>
+              <Avatar className="h-12 w-12">
+                {employee.avatar ? (
+                  <AvatarImage src={employee.avatar} alt={employee.name} />
+                ) : (
+                  <AvatarFallback className="bg-gray-200 text-gray-600">
+                    {employee.name.charAt(0)}
+                  </AvatarFallback>
+                )}
+              </Avatar>
               <div className="ml-4">
                 <h3 className="font-bold text-lg">{employee.name}</h3>
                 <p className="text-sm text-gray-500">{employee.position}</p>
@@ -65,6 +74,14 @@ const EmployeeCard: React.FC<EmployeeCardProps> = ({
           </div>
         </div>
         <div className="border-t p-3 bg-gray-50 flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8"
+            onClick={() => onViewDetails(employee)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
