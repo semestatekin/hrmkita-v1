@@ -1,6 +1,12 @@
 
 import { PayrollItem, PayrollSummary } from "@/types/payroll";
 import { getLocalData, setLocalData } from "@/utils/localStorage";
+import { getEmployees } from "@/services/employeeService";
+import { formatToRupiah } from "@/utils/payrollCalculations";
+import { PaySlip } from "@/types/payslip";
+import { generateRandomAttendance, calculateDeductions } from "@/utils/payrollCalculations";
+import { createPaySlip } from "@/services/paySlipService";
+import { Employee } from "@/types/employee";
 
 const PAYROLL_KEY = "hrm_payroll";
 
@@ -136,4 +142,127 @@ export const updatePayrollItem = (item: PayrollItem): void => {
 export const deletePayrollItem = (id: number): void => {
   const payroll = getPayroll();
   setLocalData(PAYROLL_KEY, payroll.filter((p) => p.id !== id));
+};
+
+// New function for bulk payment processing
+export interface BulkPaymentResult {
+  totalProcessed: number;
+  successCount: number;
+  failedCount: number;
+  totalAmount: string;
+  payrollItems: PayrollItem[];
+  paySlips: PaySlip[];
+}
+
+export interface BulkPaymentOptions {
+  month: string;
+  year: number;
+  selectionType: "employees" | "departments" | "positions";
+  selectedEmployees?: number[];
+  selectedDepartments?: string[];
+  selectedPositions?: string[];
+  processDate: string;
+}
+
+export const processBulkPayment = (options: BulkPaymentOptions): BulkPaymentResult => {
+  const employees = getEmployees();
+  const filteredEmployees: Employee[] = [];
+
+  // Filter employees based on selection criteria
+  if (options.selectionType === "employees" && options.selectedEmployees) {
+    options.selectedEmployees.forEach(id => {
+      const employee = employees.find(emp => emp.id === id);
+      if (employee) filteredEmployees.push(employee);
+    });
+  } else if (options.selectionType === "departments" && options.selectedDepartments) {
+    employees.forEach(employee => {
+      if (options.selectedDepartments?.includes(employee.department)) {
+        filteredEmployees.push(employee);
+      }
+    });
+  } else if (options.selectionType === "positions" && options.selectedPositions) {
+    employees.forEach(employee => {
+      if (options.selectedPositions?.includes(employee.position)) {
+        filteredEmployees.push(employee);
+      }
+    });
+  }
+
+  // Process payment for each employee
+  let successCount = 0;
+  let failedCount = 0;
+  let totalAmountValue = 0;
+  const createdPayrollItems: PayrollItem[] = [];
+  const createdPaySlips: PaySlip[] = [];
+
+  filteredEmployees.forEach(employee => {
+    try {
+      // Generate attendance record for demo purposes
+      const attendanceRecord = generateRandomAttendance();
+      
+      // Calculate deductions based on attendance
+      const deductions = employee.salary 
+        ? calculateDeductions(employee.salary, attendanceRecord)
+        : { totalDeduction: "Rp 0", details: {} };
+      
+      // Calculate bonus (simplified example - 10% of salary)
+      const salaryValue = employee.salary 
+        ? parseFloat(employee.salary.replace(/[^0-9]/g, "")) 
+        : 0;
+      const bonusValue = Math.round(salaryValue * 0.1);
+      const bonus = formatToRupiah(bonusValue);
+      
+      // Calculate total
+      const deductionsValue = parseFloat(deductions.totalDeduction.replace(/[^0-9]/g, ""));
+      const totalValue = salaryValue + bonusValue - deductionsValue;
+      const total = formatToRupiah(totalValue);
+      
+      // Create payroll item
+      const payrollItem = createPayrollItem({
+        employee: employee.name,
+        position: employee.position,
+        salary: employee.salary || "Rp 0",
+        bonus,
+        deductions: deductions.totalDeduction,
+        total,
+        status: "paid",
+        date: options.processDate,
+      });
+      
+      // Create pay slip
+      const paySlip = createPaySlip({
+        employeeId: employee.id,
+        employeeName: employee.name,
+        position: employee.position,
+        month: options.month,
+        year: options.year,
+        baseSalary: employee.salary || "Rp 0",
+        allowances: bonus,
+        deductions: deductions.totalDeduction,
+        totalSalary: total,
+        status: "paid",
+        issuedDate: options.processDate,
+        paidDate: options.processDate,
+        deductionDetails: deductions.details,
+        attendanceRecord,
+      });
+      
+      createdPayrollItems.push(payrollItem);
+      createdPaySlips.push(paySlip);
+      totalAmountValue += totalValue;
+      successCount++;
+    } catch (error) {
+      failedCount++;
+      console.error(`Failed to process payment for ${employee.name}:`, error);
+    }
+  });
+
+  return {
+    totalProcessed: filteredEmployees.length,
+    successCount,
+    failedCount,
+    totalAmount: formatToRupiah(totalAmountValue),
+    payrollItems: createdPayrollItems,
+    paySlips: createdPaySlips
+  };
 };

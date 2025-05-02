@@ -29,16 +29,20 @@ import {
   Search, 
   MoreHorizontal, 
   Plus, 
-  ArrowLeft
+  ArrowLeft,
+  CreditCard
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { PayrollItem, PayrollSummary } from "@/types/payroll";
 import { 
   getPayroll, 
   getPayrollSummary, 
   createPayrollItem, 
   updatePayrollItem, 
-  deletePayrollItem 
+  deletePayrollItem,
+  processBulkPayment,
+  BulkPaymentOptions,
+  BulkPaymentResult
 } from "@/services/payrollService";
 import { 
   getPaySlips, 
@@ -54,6 +58,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import InlinePayrollForm from "@/components/payroll/InlinePayrollForm";
 import InlinePaySlipForm from "@/components/payroll/InlinePaySlipForm";
 import InlinePaySlipDetail from "@/components/payroll/InlinePaySlipDetail";
+import BulkPaymentModal from "@/components/payroll/BulkPaymentModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const statusColors: Record<string, string> = {
   paid: "bg-green-500",
@@ -87,8 +100,6 @@ const Payroll: React.FC = () => {
   const [paySlipSearchQuery, setPaySlipSearchQuery] = useState("");
   const [isDeletePaySlipDialogOpen, setIsDeletePaySlipDialogOpen] = useState(false);
   
-  const { toast } = useToast();
-
   // Active tab state
   const [activeTab, setActiveTab] = useState("payroll");
   
@@ -99,6 +110,11 @@ const Payroll: React.FC = () => {
   const [isAddingPaySlip, setIsAddingPaySlip] = useState(false);
   const [isViewingPaySlipDetail, setIsViewingPaySlipDetail] = useState(false);
   const [viewingPaySlip, setViewingPaySlip] = useState<PaySlip | null>(null);
+
+  // Bulk payment states
+  const [isBulkPaymentModalOpen, setIsBulkPaymentModalOpen] = useState(false);
+  const [bulkPaymentResult, setBulkPaymentResult] = useState<BulkPaymentResult | null>(null);
+  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
 
   // Load payroll data
   useEffect(() => {
@@ -186,10 +202,7 @@ const Payroll: React.FC = () => {
       
       setIsDeletePayrollDialogOpen(false);
       
-      toast({
-        title: "Item penggajian dihapus",
-        description: `Data gaji ${currentPayrollItem.employee} telah dihapus.`,
-      });
+      toast.success(`Data gaji ${currentPayrollItem.employee} telah dihapus.`);
     }
   };
 
@@ -237,10 +250,7 @@ const Payroll: React.FC = () => {
       
       setIsDeletePaySlipDialogOpen(false);
       
-      toast({
-        title: "Slip gaji dihapus",
-        description: `Slip gaji untuk ${currentPaySlip.employeeName} telah dihapus.`,
-      });
+      toast.success(`Slip gaji untuk ${currentPaySlip.employeeName} telah dihapus.`);
     }
   };
 
@@ -251,10 +261,7 @@ const Payroll: React.FC = () => {
     const updatedPaySlips = getPaySlips();
     setPaySlips(updatedPaySlips);
     
-    toast({
-      title: "Slip gaji diterbitkan",
-      description: `Slip gaji untuk ${slip.employeeName} telah diterbitkan.`,
-    });
+    toast.success(`Slip gaji untuk ${slip.employeeName} telah diterbitkan.`);
   };
 
   const handleMarkAsPaid = (slip: PaySlip) => {
@@ -264,10 +271,7 @@ const Payroll: React.FC = () => {
     const updatedPaySlips = getPaySlips();
     setPaySlips(updatedPaySlips);
     
-    toast({
-      title: "Status slip gaji diubah",
-      description: `Slip gaji untuk ${slip.employeeName} telah ditandai sebagai dibayar.`,
-    });
+    toast.success(`Slip gaji untuk ${slip.employeeName} telah ditandai sebagai dibayar.`);
   };
 
   const handlePayrollSave = (data: PayrollItem) => {
@@ -277,17 +281,11 @@ const Payroll: React.FC = () => {
         ...data,
         id: currentPayrollItem.id
       });
-      toast({
-        title: "Data gaji diperbarui",
-        description: `Data gaji ${data.employee} telah berhasil diperbarui.`,
-      });
+      toast.success(`Data gaji ${data.employee} telah berhasil diperbarui.`);
     } else {
       // Create new payroll item
       createPayrollItem(data);
-      toast({
-        title: "Data gaji ditambahkan",
-        description: `Data gaji ${data.employee} telah berhasil ditambahkan.`,
-      });
+      toast.success(`Data gaji ${data.employee} telah berhasil ditambahkan.`);
     }
     
     // Refresh data
@@ -309,17 +307,11 @@ const Payroll: React.FC = () => {
         ...data,
         id: currentPaySlip.id
       });
-      toast({
-        title: "Slip gaji diperbarui",
-        description: `Slip gaji untuk ${data.employeeName} telah berhasil diperbarui.`,
-      });
+      toast.success(`Slip gaji untuk ${data.employeeName} telah berhasil diperbarui.`);
     } else {
       // Create new pay slip
       createPaySlip(data);
-      toast({
-        title: "Slip gaji ditambahkan",
-        description: `Slip gaji untuk ${data.employeeName} telah berhasil ditambahkan.`,
-      });
+      toast.success(`Slip gaji untuk ${data.employeeName} telah berhasil ditambahkan.`);
     }
     
     // Refresh data
@@ -328,6 +320,46 @@ const Payroll: React.FC = () => {
     
     setIsAddingPaySlip(false);
     setCurrentPaySlip(null);
+  };
+
+  // Bulk payment handlers
+  const handleOpenBulkPayment = () => {
+    setIsBulkPaymentModalOpen(true);
+  };
+
+  const handleCloseBulkPayment = () => {
+    setIsBulkPaymentModalOpen(false);
+  };
+
+  const handleProcessBulkPayment = (data: BulkPaymentOptions) => {
+    // Process the bulk payment
+    const result = processBulkPayment(data);
+    
+    // Close the bulk payment modal
+    setIsBulkPaymentModalOpen(false);
+    
+    // Set the result and open the result dialog
+    setBulkPaymentResult(result);
+    setIsResultDialogOpen(true);
+    
+    // Refresh data
+    const updatedPayroll = getPayroll();
+    setPayrollData(updatedPayroll);
+    
+    // Update summary
+    const updatedSummary = getPayrollSummary();
+    setSummary(updatedSummary);
+    
+    // Update pay slips
+    const updatedPaySlips = getPaySlips();
+    setPaySlips(updatedPaySlips);
+    
+    toast.success(`Proses pembayaran gaji massal berhasil untuk ${result.successCount} karyawan.`);
+  };
+
+  const handleCloseResultDialog = () => {
+    setIsResultDialogOpen(false);
+    setBulkPaymentResult(null);
   };
 
   return (
@@ -411,10 +443,16 @@ const Payroll: React.FC = () => {
                 Filter
               </Button>
             </div>
-            <Button onClick={handleCreatePayroll}>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Penggajian
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleOpenBulkPayment}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Pembayaran Massal
+              </Button>
+              <Button onClick={handleCreatePayroll}>
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Penggajian
+              </Button>
+            </div>
           </div>
 
           {/* Inline form for adding/editing payroll */}
@@ -526,10 +564,16 @@ const Payroll: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleCreatePaySlip}>
-              <Plus className="mr-2 h-4 w-4" />
-              Buat Slip Gaji
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleOpenBulkPayment}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Pembayaran Massal
+              </Button>
+              <Button onClick={handleCreatePaySlip}>
+                <Plus className="mr-2 h-4 w-4" />
+                Buat Slip Gaji
+              </Button>
+            </div>
           </div>
 
           {/* Inline form for adding/editing pay slips */}
@@ -685,6 +729,61 @@ const Payroll: React.FC = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Payment Modal */}
+      <BulkPaymentModal
+        isOpen={isBulkPaymentModalOpen}
+        onClose={handleCloseBulkPayment}
+        onProcess={handleProcessBulkPayment}
+      />
+
+      {/* Bulk Payment Result Dialog */}
+      <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Hasil Proses Pembayaran Massal</DialogTitle>
+            <DialogDescription>
+              Berikut adalah ringkasan proses pembayaran gaji massal.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {bulkPaymentResult && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <div className="text-sm text-gray-500">Total Diproses</div>
+                  <div className="text-lg font-bold">{bulkPaymentResult.totalProcessed} Karyawan</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <div className="text-sm text-gray-500">Total Nilai</div>
+                  <div className="text-lg font-bold">{bulkPaymentResult.totalAmount}</div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-green-50 p-4 rounded-md">
+                  <div className="text-sm text-green-500">Berhasil</div>
+                  <div className="text-lg font-bold">{bulkPaymentResult.successCount} Karyawan</div>
+                </div>
+                {bulkPaymentResult.failedCount > 0 && (
+                  <div className="bg-red-50 p-4 rounded-md">
+                    <div className="text-sm text-red-500">Gagal</div>
+                    <div className="text-lg font-bold">{bulkPaymentResult.failedCount} Karyawan</div>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-500">
+                Semua slip gaji telah dibuat dan data penggajian telah diperbarui.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={handleCloseResultDialog}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
