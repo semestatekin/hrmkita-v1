@@ -25,9 +25,16 @@ const Employees: React.FC = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   
-  // Get saved settings from localStorage
+  // Get saved settings from localStorage and ensure correct typing
   const settings = getEmployeeSettings();
-  const [viewMode, setViewMode] = useState<"list" | "grid">(settings.viewMode);
+  const savedViewMode = settings.viewMode;
+  
+  // Validate that viewMode is either "list" or "grid"
+  const initialViewMode = savedViewMode === "list" || savedViewMode === "grid" 
+    ? savedViewMode 
+    : "list"; // Default to list if invalid
+    
+  const [viewMode, setViewMode] = useState<"list" | "grid">(initialViewMode);
   const [columns, setColumns] = useState(settings.columns);
 
   // Load employees data

@@ -129,22 +129,35 @@ export const deleteEmployee = (id: number): boolean => {
   return false;
 };
 
+// Define the type for employee settings
+interface EmployeeSettings {
+  viewMode: "list" | "grid";
+  columns: {
+    id: string;
+    label: string;
+    isVisible: boolean;
+  }[];
+}
+
+// Default settings
+const defaultSettings: EmployeeSettings = {
+  viewMode: "list",
+  columns: [
+    { id: "name", label: "Nama", isVisible: true },
+    { id: "position", label: "Jabatan", isVisible: true },
+    { id: "department", label: "Departemen", isVisible: true },
+    { id: "contact", label: "Kontak", isVisible: true },
+    { id: "joinDate", label: "Tanggal Bergabung", isVisible: true },
+    { id: "status", label: "Status", isVisible: true },
+  ]
+};
+
 // Add or update employee local storage settings
-export const saveEmployeeSettings = (settings: any) => {
+export const saveEmployeeSettings = (settings: EmployeeSettings) => {
   setLocalData("hrm_employee_settings", settings);
 };
 
 // Get employee local storage settings
-export const getEmployeeSettings = () => {
-  return getLocalData("hrm_employee_settings", {
-    viewMode: "list",
-    columns: [
-      { id: "name", label: "Nama", isVisible: true },
-      { id: "position", label: "Jabatan", isVisible: true },
-      { id: "department", label: "Departemen", isVisible: true },
-      { id: "contact", label: "Kontak", isVisible: true },
-      { id: "joinDate", label: "Tanggal Bergabung", isVisible: true },
-      { id: "status", label: "Status", isVisible: true },
-    ]
-  });
+export const getEmployeeSettings = (): EmployeeSettings => {
+  return getLocalData("hrm_employee_settings", defaultSettings);
 };
