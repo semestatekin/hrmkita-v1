@@ -1,27 +1,19 @@
 
 import React, { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Search, Filter, MoreHorizontal, Mail, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Employee } from "@/types/employee";
+import { Plus, Search, Filter, MoreHorizontal, Mail, Phone, LayoutGrid, LayoutList } from "lucide-react";
+import { Employee, statusColors, statusLabels } from "@/types/employee";
 import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from "@/services/employeeService";
-
-const statusColors: Record<string, string> = {
-  active: "bg-green-500",
-  inactive: "bg-red-500",
-  "on-leave": "bg-yellow-500",
-};
-
-const statusLabels: Record<string, string> = {
-  active: "Aktif",
-  inactive: "Tidak Aktif",
-  "on-leave": "Cuti",
-};
+import { toast } from "sonner";
+import EmployeeForm from "@/components/employees/EmployeeForm";
+import EmployeeCard from "@/components/employees/EmployeeCard";
+import ColumnVisibilityDropdown from "@/components/employees/ColumnVisibilityDropdown";
+import { format } from "date-fns";
 
 const Employees: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -29,16 +21,31 @@ const Employees: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | undefined>(undefined);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const { toast } = useToast();
+  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
+  // Column visibility state
+  const [columns, setColumns] = useState([
+    { id: "name", label: "Nama", isVisible: true },
+    { id: "position", label: "Jabatan", isVisible: true },
+    { id: "department", label: "Departemen", isVisible: true },
+    { id: "contact", label: "Kontak", isVisible: true },
+    { id: "joinDate", label: "Tanggal Bergabung", isVisible: true },
+    { id: "status", label: "Status", isVisible: true },
+  ]);
 
   // Load employees data
   useEffect(() => {
+    loadEmployees();
+  }, []);
+
+  const loadEmployees = () => {
     const loadedEmployees = getEmployees();
     setEmployees(loadedEmployees);
     setFilteredEmployees(loadedEmployees);
-  }, []);
+  };
 
   // Filter employees when search or department filter changes
   useEffect(() => {
@@ -77,7 +84,7 @@ const Employees: React.FC = () => {
   };
 
   const handleAddEmployee = () => {
-    setCurrentEmployee(null);
+    setCurrentEmployee(undefined);
     setIsDialogOpen(true);
   };
 
@@ -86,34 +93,60 @@ const Employees: React.FC = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteClick = (employee: Employee) => {
-    setCurrentEmployee(employee);
+  const handleDeleteClick = (id: number) => {
+    setEmployeeToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDeleteConfirm = () => {
-    if (currentEmployee) {
-      deleteEmployee(currentEmployee.id);
-      setEmployees(getEmployees());
+    if (employeeToDelete !== null) {
+      deleteEmployee(employeeToDelete);
+      loadEmployees();
       setIsDeleteDialogOpen(false);
-      toast({
-        title: "Karyawan dihapus",
-        description: `${currentEmployee.name} telah dihapus dari sistem.`,
-      });
+      setEmployeeToDelete(null);
+      toast.success("Karyawan berhasil dihapus");
     }
   };
 
-  // This would be expanded in a real implementation
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Form handling would go here in a real implementation
-    setIsDialogOpen(false);
-    
-    // For demonstration, we'll just show a toast
-    toast({
-      title: currentEmployee ? "Karyawan diperbarui" : "Karyawan ditambahkan",
-      description: "Data karyawan telah berhasil disimpan.",
-    });
+  const handleFormSubmit = (data: Omit<Employee, "id"> | Employee) => {
+    try {
+      if ("id" in data) {
+        // Update existing employee
+        updateEmployee(data);
+        toast.success("Data karyawan berhasil diperbarui");
+      } else {
+        // Create new employee
+        createEmployee(data);
+        toast.success("Karyawan baru berhasil ditambahkan");
+      }
+      loadEmployees();
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat menyimpan data");
+      console.error(error);
+    }
+  };
+
+  const toggleViewMode = () => {
+    setViewMode(viewMode === "list" ? "grid" : "list");
+  };
+
+  const toggleColumnVisibility = (columnId: string) => {
+    setColumns(
+      columns.map((column) =>
+        column.id === columnId
+          ? { ...column, isVisible: !column.isVisible }
+          : column
+      )
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMM yyyy");
+    } catch (error) {
+      return dateString;
+    }
   };
 
   return (
@@ -155,126 +188,186 @@ const Employees: React.FC = () => {
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        
+        <Button variant="outline" onClick={toggleViewMode}>
+          {viewMode === "list" ? (
+            <>
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Grid
+            </>
+          ) : (
+            <>
+              <LayoutList className="mr-2 h-4 w-4" />
+              List
+            </>
+          )}
+        </Button>
+        
+        {viewMode === "list" && (
+          <ColumnVisibilityDropdown 
+            columns={columns} 
+            onToggleColumnVisibility={toggleColumnVisibility} 
+          />
+        )}
       </div>
 
-      <div className="table-container">
-        <table className="table-hrm">
-          <thead className="table-header">
-            <tr>
-              <th className="table-header-cell">Nama</th>
-              <th className="table-header-cell">Jabatan</th>
-              <th className="table-header-cell">Departemen</th>
-              <th className="table-header-cell">Kontak</th>
-              <th className="table-header-cell">Status</th>
-              <th className="table-header-cell">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="table-body">
-            {filteredEmployees.map((employee) => (
-              <tr key={employee.id} className="table-row">
-                <td className="table-data">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="font-medium text-gray-600">
-                        {employee.name.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="ml-4">
-                      <div className="font-medium text-gray-900">{employee.name}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="table-data">
-                  <div className="text-gray-900">{employee.position}</div>
-                </td>
-                <td className="table-data">
-                  <div className="text-gray-900">{employee.department}</div>
-                </td>
-                <td className="table-data">
-                  <div className="flex flex-col">
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
-                      <Mail className="h-3 w-3 mr-1" />
-                      <span>{employee.email}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Phone className="h-3 w-3 mr-1" />
-                      <span>{employee.phone}</span>
-                    </div>
-                  </div>
-                </td>
-                <td className="table-data">
-                  <Badge
-                    className={`${statusColors[employee.status]} text-white font-normal`}
-                  >
-                    {statusLabels[employee.status]}
-                  </Badge>
-                </td>
-                <td className="table-data">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteClick(employee)}>
-                        Nonaktifkan
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </td>
+      {viewMode === "list" ? (
+        <div className="table-container">
+          <table className="table-hrm">
+            <thead className="table-header">
+              <tr>
+                {columns.find(c => c.id === "name")?.isVisible && <th className="table-header-cell">Nama</th>}
+                {columns.find(c => c.id === "position")?.isVisible && <th className="table-header-cell">Jabatan</th>}
+                {columns.find(c => c.id === "department")?.isVisible && <th className="table-header-cell">Departemen</th>}
+                {columns.find(c => c.id === "contact")?.isVisible && <th className="table-header-cell">Kontak</th>}
+                {columns.find(c => c.id === "joinDate")?.isVisible && <th className="table-header-cell">Tanggal Bergabung</th>}
+                {columns.find(c => c.id === "status")?.isVisible && <th className="table-header-cell">Status</th>}
+                <th className="table-header-cell">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="table-body">
+              {filteredEmployees.length > 0 ? (
+                filteredEmployees.map((employee) => (
+                  <tr key={employee.id} className="table-row">
+                    {columns.find(c => c.id === "name")?.isVisible && (
+                      <td className="table-data">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="font-medium text-gray-600">
+                              {employee.name.charAt(0)}
+                            </span>
+                          </div>
+                          <div className="ml-4">
+                            <div className="font-medium text-gray-900">{employee.name}</div>
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    {columns.find(c => c.id === "position")?.isVisible && (
+                      <td className="table-data">
+                        <div className="text-gray-900">{employee.position}</div>
+                      </td>
+                    )}
+                    {columns.find(c => c.id === "department")?.isVisible && (
+                      <td className="table-data">
+                        <div className="text-gray-900">{employee.department}</div>
+                      </td>
+                    )}
+                    {columns.find(c => c.id === "contact")?.isVisible && (
+                      <td className="table-data">
+                        <div className="flex flex-col">
+                          <div className="flex items-center text-sm text-gray-600 mb-1">
+                            <Mail className="h-3 w-3 mr-1" />
+                            <span>{employee.email}</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Phone className="h-3 w-3 mr-1" />
+                            <span>{employee.phone}</span>
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    {columns.find(c => c.id === "joinDate")?.isVisible && (
+                      <td className="table-data">
+                        {formatDate(employee.joinDate)}
+                      </td>
+                    )}
+                    {columns.find(c => c.id === "status")?.isVisible && (
+                      <td className="table-data">
+                        <Badge
+                          className={`${statusColors[employee.status]} text-white font-normal`}
+                        >
+                          {statusLabels[employee.status]}
+                        </Badge>
+                      </td>
+                    )}
+                    <td className="table-data">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => handleDeleteClick(employee.id)}
+                          >
+                            Hapus
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="table-data text-center py-10">
+                    {searchQuery ? "Tidak ada karyawan yang sesuai dengan pencarian" : "Tidak ada data karyawan"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredEmployees.length > 0 ? (
+            filteredEmployees.map((employee) => (
+              <EmployeeCard
+                key={employee.id}
+                employee={employee}
+                onEdit={handleEditEmployee}
+                onDelete={handleDeleteClick}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-10 text-gray-500">
+              {searchQuery ? "Tidak ada karyawan yang sesuai dengan pencarian" : "Tidak ada data karyawan"}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Add/Edit Employee Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>
               {currentEmployee ? "Edit Karyawan" : "Tambah Karyawan Baru"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleFormSubmit}>
-            <div className="grid gap-4 py-4">
-              {/* Form fields would go here */}
-              <p className="text-sm text-gray-500">
-                Form input untuk {currentEmployee ? "mengedit" : "menambahkan"} data karyawan akan ditampilkan di sini.
-              </p>
-            </div>
-            <DialogFooter>
-              <Button type="submit">
-                {currentEmployee ? "Simpan Perubahan" : "Tambah Karyawan"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <EmployeeForm
+            employee={currentEmployee}
+            onSubmit={handleFormSubmit}
+            onCancel={() => setIsDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Hapus</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-500">
-            Apakah Anda yakin ingin menghapus karyawan {currentEmployee?.name}? Tindakan ini tidak dapat dibatalkan.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus karyawan ini? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-500 hover:bg-red-700 text-white"
+              onClick={handleDeleteConfirm}
+            >
               Hapus
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

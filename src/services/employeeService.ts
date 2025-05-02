@@ -1,117 +1,105 @@
 
 import { Employee } from "@/types/employee";
-import { getLocalData, setLocalData } from "@/utils/localStorage";
 
-const EMPLOYEES_KEY = "hrm_employees";
-
-// Sample data for initial load
-const initialEmployees: Employee[] = [
+// Mock employee data
+let employees: Employee[] = [
   {
     id: 1,
     name: "Budi Santoso",
+    email: "budi.santoso@haisemesta.id",
+    phone: "081234567890",
     position: "Senior Developer",
     department: "Engineering",
-    email: "budi.santoso@haisemesta.id",
-    phone: "+62 812-3456-7890",
+    joinDate: "2020-01-15",
     status: "active",
+    salary: "Rp 15.000.000",
+    address: "Jl. Sudirman No. 123, Jakarta",
+    gender: "male",
+    birthDate: "1990-05-20"
   },
   {
     id: 2,
     name: "Siti Nurhayati",
+    email: "siti.nurhayati@haisemesta.id",
+    phone: "081234567891",
     position: "UI/UX Designer",
     department: "Design",
-    email: "siti.nurhayati@haisemesta.id",
-    phone: "+62 821-0987-6543",
+    joinDate: "2020-03-10",
     status: "active",
+    salary: "Rp 12.000.000",
+    gender: "female"
   },
   {
     id: 3,
     name: "Andi Wijaya",
+    email: "andi.wijaya@haisemesta.id",
+    phone: "081234567892",
     position: "Project Manager",
     department: "Management",
-    email: "andi.wijaya@haisemesta.id",
-    phone: "+62 856-7890-1234",
-    status: "active",
+    joinDate: "2019-11-05",
+    status: "on-leave",
+    salary: "Rp 20.000.000",
+    gender: "male"
   },
   {
     id: 4,
     name: "Dewi Sartika",
+    email: "dewi.sartika@haisemesta.id",
+    phone: "081234567893",
     position: "HR Specialist",
     department: "Human Resources",
-    email: "dewi.sartika@haisemesta.id",
-    phone: "+62 877-8901-2345",
-    status: "on-leave",
+    joinDate: "2021-02-15",
+    status: "active",
+    salary: "Rp 10.000.000",
+    gender: "female"
   },
   {
     id: 5,
     name: "Rudi Hartono",
+    email: "rudi.hartono@haisemesta.id",
+    phone: "081234567894",
     position: "Sales Executive",
     department: "Sales",
-    email: "rudi.hartono@haisemesta.id",
-    phone: "+62 898-9012-3456",
-    status: "active",
-  },
-  {
-    id: 6,
-    name: "Maya Indah",
-    position: "Finance Manager",
-    department: "Finance",
-    email: "maya.indah@haisemesta.id",
-    phone: "+62 819-0123-4567",
-    status: "active",
-  },
-  {
-    id: 7,
-    name: "Dian Sastro",
-    position: "Marketing Specialist",
-    department: "Marketing",
-    email: "dian.sastro@haisemesta.id",
-    phone: "+62 831-1234-5678",
+    joinDate: "2021-01-10",
     status: "inactive",
+    salary: "Rp 8.000.000",
+    gender: "male"
   },
 ];
 
-const initializeLocalStorage = () => {
-  if (!localStorage.getItem(EMPLOYEES_KEY)) {
-    setLocalData(EMPLOYEES_KEY, initialEmployees);
-  }
-};
-
-// CRUD operations
+// Get all employees
 export const getEmployees = (): Employee[] => {
-  initializeLocalStorage();
-  return getLocalData(EMPLOYEES_KEY, []);
+  return [...employees];
 };
 
+// Get employee by id
 export const getEmployeeById = (id: number): Employee | undefined => {
-  const employees = getEmployees();
-  return employees.find((employee) => employee.id === id);
+  return employees.find(emp => emp.id === id);
 };
 
+// Create a new employee
 export const createEmployee = (employee: Omit<Employee, "id">): Employee => {
-  const employees = getEmployees();
-  const newId = employees.length > 0 
-    ? Math.max(...employees.map(e => e.id)) + 1 
-    : 1;
-
   const newEmployee = {
     ...employee,
-    id: newId
+    id: Math.max(0, ...employees.map(e => e.id)) + 1
   };
-
-  setLocalData(EMPLOYEES_KEY, [...employees, newEmployee]);
+  employees.push(newEmployee);
   return newEmployee;
 };
 
-export const updateEmployee = (employee: Employee): void => {
-  const employees = getEmployees();
-  const updatedEmployees = employees.map((e) =>
-    e.id === employee.id ? employee : e
-  );
-  setLocalData(EMPLOYEES_KEY, updatedEmployees);
+// Update an employee
+export const updateEmployee = (employee: Employee): Employee => {
+  const index = employees.findIndex(emp => emp.id === employee.id);
+  if (index !== -1) {
+    employees[index] = employee;
+    return employee;
+  }
+  throw new Error(`Employee with id ${employee.id} not found`);
 };
 
-export const deleteEmployee = (id: number): void => {
-  const employees = getEmployees();
-  setLocalData(EMPLOYEES_KEY, employees.filter((e) => e.id !== id));
+// Delete an employee
+export const deleteEmployee = (id: number): boolean => {
+  const initialLength = employees.length;
+  employees = employees.filter(emp => emp.id !== id);
+  return employees.length < initialLength;
 };
