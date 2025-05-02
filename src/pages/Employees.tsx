@@ -1,78 +1,15 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Plus, Search, Filter, MoreHorizontal, Mail, Phone } from "lucide-react";
-
-// Sample employee data
-const employees = [
-  {
-    id: 1,
-    name: "Budi Santoso",
-    position: "Senior Developer",
-    department: "Engineering",
-    email: "budi.santoso@haisemesta.id",
-    phone: "+62 812-3456-7890",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Siti Nurhayati",
-    position: "UI/UX Designer",
-    department: "Design",
-    email: "siti.nurhayati@haisemesta.id",
-    phone: "+62 821-0987-6543",
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Andi Wijaya",
-    position: "Project Manager",
-    department: "Management",
-    email: "andi.wijaya@haisemesta.id",
-    phone: "+62 856-7890-1234",
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Dewi Sartika",
-    position: "HR Specialist",
-    department: "Human Resources",
-    email: "dewi.sartika@haisemesta.id",
-    phone: "+62 877-8901-2345",
-    status: "on-leave",
-  },
-  {
-    id: 5,
-    name: "Rudi Hartono",
-    position: "Sales Executive",
-    department: "Sales",
-    email: "rudi.hartono@haisemesta.id",
-    phone: "+62 898-9012-3456",
-    status: "active",
-  },
-  {
-    id: 6,
-    name: "Maya Indah",
-    position: "Finance Manager",
-    department: "Finance",
-    email: "maya.indah@haisemesta.id",
-    phone: "+62 819-0123-4567",
-    status: "active",
-  },
-  {
-    id: 7,
-    name: "Dian Sastro",
-    position: "Marketing Specialist",
-    department: "Marketing",
-    email: "dian.sastro@haisemesta.id",
-    phone: "+62 831-1234-5678",
-    status: "inactive",
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { Employee } from "@/types/employee";
+import { getEmployees, createEmployee, updateEmployee, deleteEmployee } from "@/services/employeeService";
 
 const statusColors: Record<string, string> = {
   active: "bg-green-500",
@@ -87,11 +24,103 @@ const statusLabels: Record<string, string> = {
 };
 
 const Employees: React.FC = () => {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Load employees data
+  useEffect(() => {
+    const loadedEmployees = getEmployees();
+    setEmployees(loadedEmployees);
+    setFilteredEmployees(loadedEmployees);
+  }, []);
+
+  // Filter employees when search or department filter changes
+  useEffect(() => {
+    let filtered = employees;
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (employee) => 
+          employee.name.toLowerCase().includes(query) || 
+          employee.position.toLowerCase().includes(query) ||
+          employee.email.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply department filter
+    if (selectedDepartment !== "all") {
+      filtered = filtered.filter(
+        (employee) => employee.department === selectedDepartment
+      );
+    }
+    
+    setFilteredEmployees(filtered);
+  }, [searchQuery, selectedDepartment, employees]);
+
+  // Get unique departments for the filter dropdown
+  const departments = ["all", ...Array.from(new Set(employees.map(emp => emp.department)))];
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleDepartmentChange = (department: string) => {
+    setSelectedDepartment(department);
+  };
+
+  const handleAddEmployee = () => {
+    setCurrentEmployee(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditEmployee = (employee: Employee) => {
+    setCurrentEmployee(employee);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (employee: Employee) => {
+    setCurrentEmployee(employee);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (currentEmployee) {
+      deleteEmployee(currentEmployee.id);
+      setEmployees(getEmployees());
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Karyawan dihapus",
+        description: `${currentEmployee.name} telah dihapus dari sistem.`,
+      });
+    }
+  };
+
+  // This would be expanded in a real implementation
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form handling would go here in a real implementation
+    setIsDialogOpen(false);
+    
+    // For demonstration, we'll just show a toast
+    toast({
+      title: currentEmployee ? "Karyawan diperbarui" : "Karyawan ditambahkan",
+      description: "Data karyawan telah berhasil disimpan.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">Manajemen Karyawan</h2>
-        <Button>
+        <Button onClick={handleAddEmployee}>
           <Plus className="mr-2 h-4 w-4" /> Tambah Karyawan
         </Button>
       </div>
@@ -103,6 +132,8 @@ const Employees: React.FC = () => {
             <Input
               placeholder="Cari karyawan..."
               className="pl-9"
+              value={searchQuery}
+              onChange={handleSearchChange}
             />
           </div>
         </div>
@@ -110,15 +141,18 @@ const Employees: React.FC = () => {
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
               <Filter className="mr-2 h-4 w-4" />
-              Filter
+              {selectedDepartment === "all" ? "Semua Departemen" : selectedDepartment}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Semua Departemen</DropdownMenuItem>
-            <DropdownMenuItem>Engineering</DropdownMenuItem>
-            <DropdownMenuItem>Design</DropdownMenuItem>
-            <DropdownMenuItem>Management</DropdownMenuItem>
-            <DropdownMenuItem>Human Resources</DropdownMenuItem>
+            {departments.map((dept) => (
+              <DropdownMenuItem 
+                key={dept} 
+                onClick={() => handleDepartmentChange(dept)}
+              >
+                {dept === "all" ? "Semua Departemen" : dept}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -136,7 +170,7 @@ const Employees: React.FC = () => {
             </tr>
           </thead>
           <tbody className="table-body">
-            {employees.map((employee) => (
+            {filteredEmployees.map((employee) => (
               <tr key={employee.id} className="table-row">
                 <td className="table-data">
                   <div className="flex items-center">
@@ -183,10 +217,12 @@ const Employees: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Lihat Profil</DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Kelola Peran</DropdownMenuItem>
-                      <DropdownMenuItem>Nonaktifkan</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditEmployee(employee)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(employee)}>
+                        Nonaktifkan
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </td>
@@ -195,6 +231,50 @@ const Employees: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Add/Edit Employee Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {currentEmployee ? "Edit Karyawan" : "Tambah Karyawan Baru"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit}>
+            <div className="grid gap-4 py-4">
+              {/* Form fields would go here */}
+              <p className="text-sm text-gray-500">
+                Form input untuk {currentEmployee ? "mengedit" : "menambahkan"} data karyawan akan ditampilkan di sini.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {currentEmployee ? "Simpan Perubahan" : "Tambah Karyawan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            Apakah Anda yakin ingin menghapus karyawan {currentEmployee?.name}? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

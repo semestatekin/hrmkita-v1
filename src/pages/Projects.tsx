@@ -1,65 +1,15 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Briefcase, MoreHorizontal, Plus, Calendar, Users } from "lucide-react";
-
-// Sample project data
-const projects = [
-  {
-    id: 1,
-    name: "Website E-commerce",
-    client: "PT. Sejahtera Abadi",
-    startDate: "12 Mei 2023",
-    deadline: "20 Agustus 2023",
-    status: "in-progress",
-    progress: 75,
-    team: 5,
-  },
-  {
-    id: 2,
-    name: "Aplikasi Mobile Perbankan",
-    client: "Bank Makmur",
-    startDate: "3 Maret 2023",
-    deadline: "15 Oktober 2023",
-    status: "in-progress",
-    progress: 45,
-    team: 8,
-  },
-  {
-    id: 3,
-    name: "Dashboard Analitik",
-    client: "PT. Data Insights",
-    startDate: "20 Jan 2023",
-    deadline: "10 Juni 2023",
-    status: "completed",
-    progress: 100,
-    team: 3,
-  },
-  {
-    id: 4,
-    name: "Sistem Manajemen Inventori",
-    client: "CV. Logistik Cepat",
-    startDate: "5 April 2023",
-    deadline: "30 Juli 2023",
-    status: "delayed",
-    progress: 35,
-    team: 4,
-  },
-  {
-    id: 5,
-    name: "Platform Pembelajaran Online",
-    client: "Yayasan Pendidikan Masa Depan",
-    startDate: "1 Februari 2023",
-    deadline: "25 Juli 2023",
-    status: "in-progress",
-    progress: 65,
-    team: 6,
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { Project } from "@/types/project";
+import { getProjects, createProject, updateProject, deleteProject } from "@/services/projectService";
 
 const statusColors: Record<string, string> = {
   "in-progress": "bg-blue-500",
@@ -76,35 +26,139 @@ const statusLabels: Record<string, string> = {
 };
 
 const Projects: React.FC = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Load projects data
+  useEffect(() => {
+    const loadedProjects = getProjects();
+    setProjects(loadedProjects);
+    setFilteredProjects(loadedProjects);
+  }, []);
+
+  // Filter projects when search or status filter changes
+  useEffect(() => {
+    let filtered = projects;
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (project) => 
+          project.name.toLowerCase().includes(query) || 
+          project.client.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (project) => project.status === statusFilter
+      );
+    }
+    
+    setFilteredProjects(filtered);
+  }, [searchQuery, statusFilter, projects]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleStatusChange = (status: string) => {
+    setStatusFilter(status);
+  };
+
+  const handleAddProject = () => {
+    setCurrentProject(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setCurrentProject(project);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (project: Project) => {
+    setCurrentProject(project);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (currentProject) {
+      deleteProject(currentProject.id);
+      setProjects(getProjects());
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Proyek dihapus",
+        description: `${currentProject.name} telah dihapus dari sistem.`,
+      });
+    }
+  };
+
+  // This would be expanded in a real implementation
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form handling would go here in a real implementation
+    setIsDialogOpen(false);
+    
+    // For demonstration, we'll just show a toast
+    toast({
+      title: currentProject ? "Proyek diperbarui" : "Proyek ditambahkan",
+      description: "Data proyek telah berhasil disimpan.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Manajemen Proyek</h2>
-        <Button>
+        <Button onClick={handleAddProject}>
           <Plus className="mr-2 h-4 w-4" /> Proyek Baru
         </Button>
       </div>
 
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex-1 max-w-md">
-          <Input placeholder="Cari proyek..." />
+          <Input 
+            placeholder="Cari proyek..." 
+            value={searchQuery} 
+            onChange={handleSearchChange} 
+          />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">Status</Button>
+            <Button variant="outline">
+              {statusFilter === "all" ? "Status" : statusLabels[statusFilter as keyof typeof statusLabels]}
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Semua</DropdownMenuItem>
-            <DropdownMenuItem>Sedang Berjalan</DropdownMenuItem>
-            <DropdownMenuItem>Selesai</DropdownMenuItem>
-            <DropdownMenuItem>Terlambat</DropdownMenuItem>
-            <DropdownMenuItem>Belum Dimulai</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange("all")}>
+              Semua
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange("in-progress")}>
+              Sedang Berjalan
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange("completed")}>
+              Selesai
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange("delayed")}>
+              Terlambat
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleStatusChange("not-started")}>
+              Belum Dimulai
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {projects.map((project) => (
+        {filteredProjects.map((project) => (
           <Card key={project.id} className="overflow-hidden">
             <CardHeader className="flex flex-row justify-between items-start p-4 gap-4">
               <div className="flex-1">
@@ -124,9 +178,13 @@ const Projects: React.FC = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Edit Proyek</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                        Edit Proyek
+                      </DropdownMenuItem>
                       <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                      <DropdownMenuItem>Arsipkan</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(project)}>
+                        Hapus
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -169,6 +227,50 @@ const Projects: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Add/Edit Project Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {currentProject ? "Edit Proyek" : "Tambah Proyek Baru"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit}>
+            <div className="grid gap-4 py-4">
+              {/* Form fields would go here */}
+              <p className="text-sm text-gray-500">
+                Form input untuk {currentProject ? "mengedit" : "menambahkan"} data proyek akan ditampilkan di sini.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {currentProject ? "Simpan Perubahan" : "Tambah Proyek"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            Apakah Anda yakin ingin menghapus proyek {currentProject?.name}? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

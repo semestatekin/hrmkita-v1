@@ -1,70 +1,15 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar, FileText, Download, Filter, Search, MoreHorizontal } from "lucide-react";
-
-// Sample payroll data
-const payrollData = [
-  {
-    id: 1,
-    employee: "Budi Santoso",
-    position: "Senior Developer",
-    salary: "Rp 15.000.000",
-    bonus: "Rp 2.500.000",
-    deductions: "Rp 1.750.000",
-    total: "Rp 15.750.000",
-    status: "paid",
-    date: "28 Mei 2023",
-  },
-  {
-    id: 2,
-    employee: "Siti Nurhayati",
-    position: "UI/UX Designer",
-    salary: "Rp 12.000.000",
-    bonus: "Rp 1.800.000",
-    deductions: "Rp 1.350.000",
-    total: "Rp 12.450.000",
-    status: "paid",
-    date: "28 Mei 2023",
-  },
-  {
-    id: 3,
-    employee: "Andi Wijaya",
-    position: "Project Manager",
-    salary: "Rp 18.000.000",
-    bonus: "Rp 3.000.000",
-    deductions: "Rp 2.100.000",
-    total: "Rp 18.900.000",
-    status: "paid",
-    date: "28 Mei 2023",
-  },
-  {
-    id: 4,
-    employee: "Dewi Sartika",
-    position: "HR Specialist",
-    salary: "Rp 10.000.000",
-    bonus: "Rp 1.200.000",
-    deductions: "Rp 1.100.000",
-    total: "Rp 10.100.000",
-    status: "processing",
-    date: "28 Mei 2023",
-  },
-  {
-    id: 5,
-    employee: "Rudi Hartono",
-    position: "Sales Executive",
-    salary: "Rp 9.000.000",
-    bonus: "Rp 3.500.000",
-    deductions: "Rp 1.250.000",
-    total: "Rp 11.250.000",
-    status: "paid",
-    date: "28 Mei 2023",
-  },
-];
+import { useToast } from "@/hooks/use-toast";
+import { PayrollItem, PayrollSummary } from "@/types/payroll";
+import { getPayroll, getPayrollSummary, createPayrollItem, updatePayrollItem, deletePayrollItem } from "@/services/payrollService";
 
 const statusColors: Record<string, string> = {
   paid: "bg-green-500",
@@ -79,6 +24,99 @@ const statusLabels: Record<string, string> = {
 };
 
 const Payroll: React.FC = () => {
+  const [payrollData, setPayrollData] = useState<PayrollItem[]>([]);
+  const [filteredPayroll, setFilteredPayroll] = useState<PayrollItem[]>([]);
+  const [summary, setSummary] = useState<PayrollSummary>({
+    totalAmount: "Rp 0",
+    employeeCount: 0,
+    averageSalary: "Rp 0",
+    totalBonus: "Rp 0",
+    totalDeductions: "Rp 0",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentPayrollItem, setCurrentPayrollItem] = useState<PayrollItem | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Load payroll data
+  useEffect(() => {
+    const loadedPayroll = getPayroll();
+    setPayrollData(loadedPayroll);
+    setFilteredPayroll(loadedPayroll);
+    
+    const payrollSummary = getPayrollSummary();
+    setSummary(payrollSummary);
+  }, []);
+
+  // Filter payroll when search changes
+  useEffect(() => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const filtered = payrollData.filter(
+        (item) => 
+          item.employee.toLowerCase().includes(query) || 
+          item.position.toLowerCase().includes(query)
+      );
+      setFilteredPayroll(filtered);
+    } else {
+      setFilteredPayroll(payrollData);
+    }
+  }, [searchQuery, payrollData]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleCreatePayroll = () => {
+    setCurrentPayrollItem(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleEditPayrollItem = (item: PayrollItem) => {
+    setCurrentPayrollItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleDeleteClick = (item: PayrollItem) => {
+    setCurrentPayrollItem(item);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (currentPayrollItem) {
+      deletePayrollItem(currentPayrollItem.id);
+      
+      // Refresh data
+      const updatedPayroll = getPayroll();
+      setPayrollData(updatedPayroll);
+      
+      // Update summary
+      const updatedSummary = getPayrollSummary();
+      setSummary(updatedSummary);
+      
+      setIsDeleteDialogOpen(false);
+      
+      toast({
+        title: "Item penggajian dihapus",
+        description: `Data gaji ${currentPayrollItem.employee} telah dihapus.`,
+      });
+    }
+  };
+
+  // This would be expanded in a real implementation
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Form handling would go here in a real implementation
+    setIsDialogOpen(false);
+    
+    // For demonstration, we'll just show a toast
+    toast({
+      title: currentPayrollItem ? "Data gaji diperbarui" : "Data gaji ditambahkan",
+      description: "Data penggajian telah berhasil disimpan.",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
@@ -88,7 +126,7 @@ const Payroll: React.FC = () => {
             <Calendar className="mr-2 h-4 w-4" />
             Mei 2023
           </Button>
-          <Button>
+          <Button onClick={handleCreatePayroll}>
             <FileText className="mr-2 h-4 w-4" />
             Buat Penggajian
           </Button>
@@ -101,8 +139,8 @@ const Payroll: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Penggajian</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <span className="text-2xl font-bold">Rp 68.450.000</span>
-            <p className="text-xs text-muted-foreground">5 karyawan</p>
+            <span className="text-2xl font-bold">{summary.totalAmount}</span>
+            <p className="text-xs text-muted-foreground">{summary.employeeCount} karyawan</p>
           </CardContent>
         </Card>
         
@@ -111,7 +149,7 @@ const Payroll: React.FC = () => {
             <CardTitle className="text-sm font-medium">Rata-rata Gaji</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <span className="text-2xl font-bold">Rp 13.690.000</span>
+            <span className="text-2xl font-bold">{summary.averageSalary}</span>
           </CardContent>
         </Card>
         
@@ -120,7 +158,7 @@ const Payroll: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Bonus</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <span className="text-2xl font-bold">Rp 12.000.000</span>
+            <span className="text-2xl font-bold">{summary.totalBonus}</span>
           </CardContent>
         </Card>
         
@@ -129,7 +167,7 @@ const Payroll: React.FC = () => {
             <CardTitle className="text-sm font-medium">Total Potongan</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0">
-            <span className="text-2xl font-bold">Rp 7.550.000</span>
+            <span className="text-2xl font-bold">{summary.totalDeductions}</span>
           </CardContent>
         </Card>
       </div>
@@ -138,7 +176,12 @@ const Payroll: React.FC = () => {
         <div className="flex-1 min-w-[250px]">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input placeholder="Cari karyawan..." className="pl-9" />
+            <Input 
+              placeholder="Cari karyawan..." 
+              className="pl-9" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
           </div>
         </div>
         <Button variant="outline">
@@ -161,7 +204,7 @@ const Payroll: React.FC = () => {
             </tr>
           </thead>
           <tbody className="table-body">
-            {payrollData.map((item) => (
+            {filteredPayroll.map((item) => (
               <tr key={item.id} className="table-row">
                 <td className="table-data">
                   <div className="flex items-center">
@@ -199,8 +242,8 @@ const Payroll: React.FC = () => {
                         <Download className="mr-2 h-4 w-4" />
                         Unduh Slip
                       </DropdownMenuItem>
-                      <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditPayrollItem(item)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteClick(item)}>Hapus</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </td>
@@ -209,6 +252,50 @@ const Payroll: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Add/Edit Payroll Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {currentPayrollItem ? "Edit Data Gaji" : "Tambah Data Gaji"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit}>
+            <div className="grid gap-4 py-4">
+              {/* Form fields would go here */}
+              <p className="text-sm text-gray-500">
+                Form input untuk {currentPayrollItem ? "mengedit" : "menambahkan"} data gaji akan ditampilkan di sini.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="submit">
+                {currentPayrollItem ? "Simpan Perubahan" : "Tambah Data"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi Hapus</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            Apakah Anda yakin ingin menghapus data gaji {currentPayrollItem?.employee}? Tindakan ini tidak dapat dibatalkan.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Hapus
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
