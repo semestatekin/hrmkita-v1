@@ -1,4 +1,17 @@
 
+export interface DeductionDetails {
+  absence?: string;
+  late?: string;
+  tax?: string;
+  other?: string;
+}
+
+export interface AttendanceRecord {
+  presentDays: number;
+  totalDays: number;
+  lateDays?: number;
+}
+
 export interface PaySlip {
   id: number;
   employeeId: number;
@@ -13,6 +26,9 @@ export interface PaySlip {
   status: "draft" | "issued" | "paid";
   issuedDate: string;
   paidDate?: string;
+  deductionDetails?: DeductionDetails;
+  attendanceRecord?: AttendanceRecord;
+  notes?: string;
 }
 
 export const paySlipStatusColors: Record<string, string> = {

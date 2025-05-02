@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,9 +13,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaySlip } from "@/types/payslip";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { PaySlip, AttendanceRecord, DeductionDetails } from "@/types/payslip";
+import EmployeeSelect from "./EmployeeSelect";
+import { 
+  formatToRupiah, 
+  extractNumericValue,
+  calculateDeductions, 
+  calculateTotalSalary,
+  defaultDeductionSettings
+} from "@/utils/payrollCalculations";
+import DeductionSettings from "./DeductionSettings";
 
 interface InlinePaySlipFormProps {
   initialData: PaySlip | null;
@@ -37,6 +47,7 @@ const paySlipFormSchema = z.object({
   status: z.enum(["draft", "issued", "paid"]),
   issuedDate: z.string(),
   paidDate: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
@@ -45,22 +56,29 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
   onCancel,
 }) => {
   const currentDate = new Date().toISOString().split("T")[0];
+  const [deductionSettings, setDeductionSettings] = useState(defaultDeductionSettings);
+  const [attendanceRecord, setAttendanceRecord] = useState<AttendanceRecord>({
+    presentDays: 22,
+    totalDays: 22,
+    lateDays: 0
+  });
   
   const form = useForm<PaySlip>({
     resolver: zodResolver(paySlipFormSchema),
     defaultValues: initialData || {
-      id: 0, // Will be set on save for new items
-      employeeId: Math.floor(Math.random() * 1000) + 1, // For demo, in real app this would be selected
+      id: 0,
+      employeeId: 0,
       employeeName: "",
       position: "",
       month: new Date().toLocaleString('id-ID', { month: 'long' }),
       year: new Date().getFullYear(),
-      baseSalary: "",
-      allowances: "",
-      deductions: "",
-      totalSalary: "",
+      baseSalary: "Rp 0",
+      allowances: "Rp 0",
+      deductions: "Rp 0",
+      totalSalary: "Rp 0",
       status: "draft",
       issuedDate: currentDate,
+      notes: "",
     },
   });
 
@@ -70,25 +88,97 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
   const baseSalary = watch("baseSalary");
   const allowances = watch("allowances");
   const deductions = watch("deductions");
+  
+  // Initialize attendance record from initial data if available
+  useEffect(() => {
+    if (initialData?.attendanceRecord) {
+      setAttendanceRecord(initialData.attendanceRecord);
+    }
+  }, [initialData]);
 
-  // Helper function to extract numeric value from currency string
-  const extractNumericValue = (value: string): number => {
-    return parseFloat(value.replace(/[^0-9]/g, "")) || 0;
+  // Handler for employee selection
+  const handleEmployeeSelect = (employeeData: any) => {
+    if (!employeeData) return;
+    
+    setValue("employeeId", employeeData.employeeId);
+    setValue("employeeName", employeeData.employeeName);
+    setValue("position", employeeData.position);
+    setValue("baseSalary", employeeData.baseSalary);
+    
+    if (employeeData.attendanceRecord) {
+      setAttendanceRecord(employeeData.attendanceRecord);
+    }
+    
+    // Recalculate deductions based on the new salary and attendance
+    const calculatedDeductions = calculateDeductions(
+      employeeData.baseSalary, 
+      attendanceRecord,
+      deductionSettings
+    );
+    
+    setValue("deductions", calculatedDeductions.totalDeduction);
+    
+    // Also update total salary
+    const calculatedTotal = calculateTotalSalary(
+      employeeData.baseSalary,
+      watch("allowances"),
+      calculatedDeductions.totalDeduction
+    );
+    
+    setValue("totalSalary", calculatedTotal);
   };
 
-  // Helper function to format number to Indonesian Rupiah
-  const formatToRupiah = (value: number): string => {
-    return `Rp ${value.toLocaleString("id-ID")}`;
+  // Handle attendance record change
+  const handleAttendanceChange = (field: keyof AttendanceRecord, value: number) => {
+    const newAttendance = { ...attendanceRecord, [field]: value };
+    setAttendanceRecord(newAttendance);
+    
+    // Recalculate deductions
+    const calculatedDeductions = calculateDeductions(
+      baseSalary, 
+      newAttendance,
+      deductionSettings
+    );
+    
+    setValue("deductions", calculatedDeductions.totalDeduction);
+    
+    // Update total salary
+    const calculatedTotal = calculateTotalSalary(
+      baseSalary,
+      allowances,
+      calculatedDeductions.totalDeduction
+    );
+    
+    setValue("totalSalary", calculatedTotal);
+  };
+  
+  // Handle deduction settings change
+  const handleDeductionSettingsChange = (newSettings: any) => {
+    setDeductionSettings(newSettings);
+    
+    // Recalculate deductions with new settings
+    const calculatedDeductions = calculateDeductions(
+      baseSalary, 
+      attendanceRecord,
+      newSettings
+    );
+    
+    setValue("deductions", calculatedDeductions.totalDeduction);
+    
+    // Update total salary
+    const calculatedTotal = calculateTotalSalary(
+      baseSalary,
+      allowances,
+      calculatedDeductions.totalDeduction
+    );
+    
+    setValue("totalSalary", calculatedTotal);
   };
 
   // Calculate total whenever base salary, allowances or deductions change
-  React.useEffect(() => {
-    const salaryValue = extractNumericValue(baseSalary);
-    const allowancesValue = extractNumericValue(allowances);
-    const deductionsValue = extractNumericValue(deductions);
-    
-    const totalValue = salaryValue + allowancesValue - deductionsValue;
-    setValue("totalSalary", formatToRupiah(totalValue));
+  useEffect(() => {
+    const totalSalary = calculateTotalSalary(baseSalary, allowances, deductions);
+    setValue("totalSalary", totalSalary);
   }, [baseSalary, allowances, deductions, setValue]);
 
   const months = [
@@ -97,46 +187,90 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
   ];
 
   const onSubmit = (data: PaySlip) => {
-    onSave(data);
+    // Calculate deduction details
+    const calculatedDeductions = calculateDeductions(
+      data.baseSalary, 
+      attendanceRecord,
+      deductionSettings
+    );
+    
+    // Add tax as a fixed amount
+    const deductionDetails: DeductionDetails = {
+      ...calculatedDeductions.details,
+      tax: "Rp 500.000" // Default tax amount
+    };
+    
+    const paySlipWithDetails: PaySlip = {
+      ...data,
+      attendanceRecord,
+      deductionDetails
+    };
+    
+    onSave(paySlipWithDetails);
+  };
+  
+  // Format currency input
+  const formatCurrencyInput = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
+    let value = e.target.value.replace(/[^0-9]/g, "");
+    if (value) {
+      const numericValue = parseInt(value, 10);
+      field.onChange(formatToRupiah(numericValue));
+    } else {
+      field.onChange("");
+    }
   };
 
   return (
     <Card className="border shadow-sm">
       <CardHeader>
         <CardTitle>
-          {initialData ? "Edit Slip Gaji" : "Buat Slip Gaji"}
+          {initialData ? "Edit Slip Gaji" : "Buat Slip Gaji Baru"}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="employeeName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nama Karyawan</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Masukkan nama karyawan" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Employee Selection */}
+            <div className="space-y-2">
+              <FormLabel>Pilih Karyawan</FormLabel>
+              <EmployeeSelect 
+                onEmployeeSelect={handleEmployeeSelect}
+                defaultValue={initialData?.employeeId.toString()}
+              />
+              <p className="text-xs text-muted-foreground">
+                Pilih karyawan untuk mengisi data secara otomatis
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="employeeName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nama Karyawan</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Nama karyawan" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Posisi</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Masukkan posisi karyawan" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Posisi</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Posisi karyawan" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -178,7 +312,7 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                         type="number"
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value))}
-                        placeholder="contoh: 2023"
+                        placeholder="Tahun"
                       />
                     </FormControl>
                     <FormMessage />
@@ -197,15 +331,7 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                     <Input 
                       {...field} 
                       placeholder="contoh: Rp 8.000.000" 
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/[^0-9]/g, "");
-                        if (value) {
-                          const numericValue = parseInt(value, 10);
-                          field.onChange(formatToRupiah(numericValue));
-                        } else {
-                          field.onChange("");
-                        }
-                      }}
+                      onChange={(e) => formatCurrencyInput(e, field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -223,21 +349,68 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                     <Input 
                       {...field} 
                       placeholder="contoh: Rp 2.000.000" 
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/[^0-9]/g, "");
-                        if (value) {
-                          const numericValue = parseInt(value, 10);
-                          field.onChange(formatToRupiah(numericValue));
-                        } else {
-                          field.onChange("");
-                        }
-                      }}
+                      onChange={(e) => formatCurrencyInput(e, field)}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Attendance Section */}
+            <div className="border rounded-md p-4 space-y-4">
+              <h4 className="font-medium">Data Kehadiran</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <FormLabel htmlFor="totalDays">Total Hari Kerja</FormLabel>
+                  <Input 
+                    id="totalDays" 
+                    type="number" 
+                    value={attendanceRecord.totalDays} 
+                    onChange={(e) => handleAttendanceChange("totalDays", parseInt(e.target.value))}
+                    min={0}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <FormLabel htmlFor="presentDays">Hari Hadir</FormLabel>
+                  <Input 
+                    id="presentDays" 
+                    type="number" 
+                    value={attendanceRecord.presentDays} 
+                    onChange={(e) => handleAttendanceChange("presentDays", parseInt(e.target.value))}
+                    min={0}
+                    max={attendanceRecord.totalDays}
+                    className="mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <FormLabel htmlFor="lateDays">Hari Terlambat</FormLabel>
+                  <Input 
+                    id="lateDays" 
+                    type="number" 
+                    value={attendanceRecord.lateDays || 0} 
+                    onChange={(e) => handleAttendanceChange("lateDays", parseInt(e.target.value))}
+                    min={0}
+                    max={attendanceRecord.presentDays}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              
+              <div className="text-sm text-right">
+                <span className="text-muted-foreground">Ketidakhadiran: </span>
+                <span>{attendanceRecord.totalDays - attendanceRecord.presentDays} hari</span>
+              </div>
+            </div>
+            
+            {/* Deduction Settings */}
+            <div className="mb-4">
+              <DeductionSettings onChange={handleDeductionSettingsChange} />
+            </div>
 
             <FormField
               control={form.control}
@@ -249,15 +422,7 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                     <Input 
                       {...field} 
                       placeholder="contoh: Rp 1.000.000" 
-                      onChange={(e) => {
-                        let value = e.target.value.replace(/[^0-9]/g, "");
-                        if (value) {
-                          const numericValue = parseInt(value, 10);
-                          field.onChange(formatToRupiah(numericValue));
-                        } else {
-                          field.onChange("");
-                        }
-                      }}
+                      onChange={(e) => formatCurrencyInput(e, field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -272,7 +437,7 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                 <FormItem>
                   <FormLabel>Total Gaji</FormLabel>
                   <FormControl>
-                    <Input {...field} readOnly className="bg-gray-50" />
+                    <Input {...field} readOnly className="bg-gray-50 font-bold" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -301,6 +466,24 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
                       <SelectItem value="paid">Dibayar</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Catatan</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      {...field} 
+                      placeholder="Catatan tambahan (opsional)" 
+                      rows={3}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

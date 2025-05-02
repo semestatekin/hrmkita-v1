@@ -4,7 +4,7 @@ import { PaySlip, paySlipStatusColors, paySlipStatusLabels } from "@/types/paysl
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import { Calendar, User } from "lucide-react";
+import { Calendar, User, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface InlinePaySlipDetailProps {
@@ -25,6 +25,13 @@ const InlinePaySlipDetail: React.FC<InlinePaySlipDetailProps> = ({
     } catch (error) {
       return dateString;
     }
+  };
+
+  // Format currency amount for display
+  const formatCurrency = (amount: string) => {
+    // Return as is if already formatted
+    if (amount.includes("Rp")) return amount;
+    return `Rp ${parseInt(amount).toLocaleString("id-ID")}`;
   };
   
   return (
@@ -101,22 +108,56 @@ const InlinePaySlipDetail: React.FC<InlinePaySlipDetailProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 pb-2">
             <span className="text-gray-500">Gaji Pokok</span>
-            <span className="text-right">{paySlip.baseSalary}</span>
+            <span className="text-right">{formatCurrency(paySlip.baseSalary)}</span>
           </div>
           
           <div className="grid grid-cols-2 gap-2 pb-2">
             <span className="text-gray-500">Tunjangan</span>
-            <span className="text-right">{paySlip.allowances}</span>
+            <span className="text-right">{formatCurrency(paySlip.allowances)}</span>
           </div>
           
-          <div className="grid grid-cols-2 gap-2 pb-3 border-b">
-            <span className="text-gray-500">Potongan</span>
-            <span className="text-right text-red-500">-{paySlip.deductions}</span>
+          {/* Deductions Detail Section */}
+          <div className="pb-2">
+            <div className="grid grid-cols-2 gap-2">
+              <span className="text-gray-500">Potongan:</span>
+              <span className="text-right text-red-500">-{formatCurrency(paySlip.deductions)}</span>
+            </div>
+            
+            {paySlip.deductionDetails && (
+              <div className="mt-2 pl-4 text-sm text-gray-500">
+                <div className="flex items-center gap-1 mb-1">
+                  <FileText className="h-3 w-3" />
+                  <span className="font-medium">Rincian Potongan:</span>
+                </div>
+                <ul className="list-disc pl-6 space-y-1">
+                  {paySlip.deductionDetails.absence && (
+                    <li>Ketidakhadiran: -{formatCurrency(paySlip.deductionDetails.absence)}</li>
+                  )}
+                  {paySlip.deductionDetails.late && (
+                    <li>Keterlambatan: -{formatCurrency(paySlip.deductionDetails.late)}</li>
+                  )}
+                  {paySlip.deductionDetails.tax && (
+                    <li>Pajak: -{formatCurrency(paySlip.deductionDetails.tax)}</li>
+                  )}
+                  {paySlip.deductionDetails.other && (
+                    <li>Lainnya: -{formatCurrency(paySlip.deductionDetails.other)}</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 pt-3 pb-3 border-t border-b">
+            <span className="text-gray-500">Kehadiran</span>
+            <span className="text-right">
+              {paySlip.attendanceRecord ? `${paySlip.attendanceRecord.presentDays}/${paySlip.attendanceRecord.totalDays} hari` : "-"}
+              {paySlip.attendanceRecord?.lateDays ? `, Terlambat: ${paySlip.attendanceRecord.lateDays} hari` : ""}
+            </span>
           </div>
           
           <div className="grid grid-cols-2 gap-2 font-bold">
             <span>Total Gaji</span>
-            <span className="text-right">{paySlip.totalSalary}</span>
+            <span className="text-right">{formatCurrency(paySlip.totalSalary)}</span>
           </div>
         </div>
       </div>
@@ -126,6 +167,7 @@ const InlinePaySlipDetail: React.FC<InlinePaySlipDetailProps> = ({
       {/* Notes */}
       <div className="text-sm text-gray-500 italic">
         <p>Slip gaji ini dikeluarkan secara otomatis dan sah tanpa tanda tangan.</p>
+        {paySlip.notes && <p className="mt-2">{paySlip.notes}</p>}
       </div>
     </div>
   );
