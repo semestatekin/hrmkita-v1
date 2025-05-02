@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -18,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2, ChevronRight, Target } from 'lucide-react';
 import { getObjectives, getKeyResultsByObjectiveId, deleteObjective } from '@/services/performanceService';
 import { OKRObjective, KeyResult, statusColors, statusLabels } from '@/types/performance';
-import { toast } from '@/components/ui/sonner';
+import { toast } from "sonner";
 
 const OKRList: React.FC = () => {
   const [objectives, setObjectives] = useState<OKRObjective[]>(getObjectives());

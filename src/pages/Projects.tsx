@@ -14,7 +14,7 @@ import { getProjects, addProject, updateProject, deleteProject } from "@/service
 import ProjectCard from "@/components/projects/ProjectCard";
 import ProjectForm from "@/components/projects/ProjectForm";
 import ProjectDetail from "@/components/projects/ProjectDetail";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const Projects: React.FC = () => {

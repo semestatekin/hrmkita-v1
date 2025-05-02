@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { KPI, statusColors, statusLabels } from '@/types/performance';
 import { getKPIs, deleteKPI } from '@/services/performanceService';
-import { toast } from '@/components/ui/sonner';
+import { toast } from "sonner";
 
 const KPIList: React.FC = () => {
   const [kpis, setKpis] = useState<KPI[]>(getKPIs());

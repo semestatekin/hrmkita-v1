@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,12 +9,11 @@ import StatisticsCards from "@/components/performance/StatisticsCards";
 import DepartmentPerformanceChart from "@/components/performance/DepartmentPerformanceChart";
 import EmployeeEvaluation from "@/components/performance/EmployeeEvaluation";
 import { performanceData, statusColors, statusLabels, departmentPerformance } from "@/data/performanceData";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const Performance: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [evaluationType, setEvaluationType] = useState<'kpi' | 'okr' | 'employee'>('employee');
-  const { toast } = useToast();
 
   const handleCreateEvaluation = () => {
     setIsDialogOpen(true);
@@ -43,10 +41,7 @@ const Performance: React.FC = () => {
         break;
     }
     
-    toast({
-      title: "Berhasil!",
-      description: message,
-    });
+    toast.success(message);
   };
 
   return (
