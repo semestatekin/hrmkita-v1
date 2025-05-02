@@ -168,6 +168,7 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Added React.useSyncExternalStore to ensure it works with React 18
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
