@@ -11,21 +11,16 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { 
   Calendar, 
   FileText, 
@@ -34,8 +29,7 @@ import {
   Search, 
   MoreHorizontal, 
   Plus, 
-  Save, 
-  Trash2 
+  ArrowLeft
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PayrollItem, PayrollSummary } from "@/types/payroll";
@@ -57,12 +51,9 @@ import {
 import { PaySlip, paySlipStatusColors, paySlipStatusLabels } from "@/types/payslip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import PayrollForm from "@/components/payroll/PayrollForm";
-import PaySlipForm from "@/components/payroll/PaySlipForm";
-import PaySlipDetail from "@/components/payroll/PaySlipDetail";
+import InlinePayrollForm from "@/components/payroll/InlinePayrollForm";
+import InlinePaySlipForm from "@/components/payroll/InlinePaySlipForm";
+import InlinePaySlipDetail from "@/components/payroll/InlinePaySlipDetail";
 
 const statusColors: Record<string, string> = {
   paid: "bg-green-500",
@@ -88,23 +79,26 @@ const Payroll: React.FC = () => {
     totalDeductions: "Rp 0",
   });
   const [searchQuery, setSearchQuery] = useState("");
-  const [isPayrollDialogOpen, setIsPayrollDialogOpen] = useState(false);
-  const [currentPayrollItem, setCurrentPayrollItem] = useState<PayrollItem | null>(null);
   const [isDeletePayrollDialogOpen, setIsDeletePayrollDialogOpen] = useState(false);
   
   // Pay slip state
   const [paySlips, setPaySlips] = useState<PaySlip[]>([]);
   const [filteredPaySlips, setFilteredPaySlips] = useState<PaySlip[]>([]);
   const [paySlipSearchQuery, setPaySlipSearchQuery] = useState("");
-  const [isPaySlipDialogOpen, setIsPaySlipDialogOpen] = useState(false);
-  const [isPaySlipDetailOpen, setIsPaySlipDetailOpen] = useState(false);
-  const [currentPaySlip, setCurrentPaySlip] = useState<PaySlip | null>(null);
   const [isDeletePaySlipDialogOpen, setIsDeletePaySlipDialogOpen] = useState(false);
   
   const { toast } = useToast();
 
   // Active tab state
   const [activeTab, setActiveTab] = useState("payroll");
+  
+  // Inline editing states
+  const [currentPayrollItem, setCurrentPayrollItem] = useState<PayrollItem | null>(null);
+  const [isAddingPayroll, setIsAddingPayroll] = useState(false);
+  const [currentPaySlip, setCurrentPaySlip] = useState<PaySlip | null>(null);
+  const [isAddingPaySlip, setIsAddingPaySlip] = useState(false);
+  const [isViewingPaySlipDetail, setIsViewingPaySlipDetail] = useState(false);
+  const [viewingPaySlip, setViewingPaySlip] = useState<PaySlip | null>(null);
 
   // Load payroll data
   useEffect(() => {
@@ -160,12 +154,17 @@ const Payroll: React.FC = () => {
 
   const handleCreatePayroll = () => {
     setCurrentPayrollItem(null);
-    setIsPayrollDialogOpen(true);
+    setIsAddingPayroll(true);
   };
 
   const handleEditPayrollItem = (item: PayrollItem) => {
     setCurrentPayrollItem(item);
-    setIsPayrollDialogOpen(true);
+    setIsAddingPayroll(true);
+  };
+
+  const handleCancelPayrollEdit = () => {
+    setCurrentPayrollItem(null);
+    setIsAddingPayroll(false);
   };
 
   const handleDeletePayrollClick = (item: PayrollItem) => {
@@ -196,17 +195,31 @@ const Payroll: React.FC = () => {
 
   const handleCreatePaySlip = () => {
     setCurrentPaySlip(null);
-    setIsPaySlipDialogOpen(true);
+    setIsAddingPaySlip(true);
   };
 
   const handleViewPaySlip = (slip: PaySlip) => {
-    setCurrentPaySlip(slip);
-    setIsPaySlipDetailOpen(true);
+    setViewingPaySlip(slip);
+    setIsViewingPaySlipDetail(true);
+  };
+
+  const handleClosePaySlipDetail = () => {
+    setViewingPaySlip(null);
+    setIsViewingPaySlipDetail(false);
   };
 
   const handleEditPaySlip = (slip: PaySlip) => {
     setCurrentPaySlip(slip);
-    setIsPaySlipDialogOpen(true);
+    setIsAddingPaySlip(true);
+    // If viewing details, close the detail view
+    if (isViewingPaySlipDetail) {
+      setIsViewingPaySlipDetail(false);
+    }
+  };
+
+  const handleCancelPaySlipEdit = () => {
+    setCurrentPaySlip(null);
+    setIsAddingPaySlip(false);
   };
 
   const handleDeletePaySlipClick = (slip: PaySlip) => {
@@ -285,7 +298,8 @@ const Payroll: React.FC = () => {
     const updatedSummary = getPayrollSummary();
     setSummary(updatedSummary);
     
-    setIsPayrollDialogOpen(false);
+    setIsAddingPayroll(false);
+    setCurrentPayrollItem(null);
   };
 
   const handlePaySlipSave = (data: PaySlip) => {
@@ -312,7 +326,8 @@ const Payroll: React.FC = () => {
     const updatedPaySlips = getPaySlips();
     setPaySlips(updatedPaySlips);
     
-    setIsPaySlipDialogOpen(false);
+    setIsAddingPaySlip(false);
+    setCurrentPaySlip(null);
   };
 
   return (
@@ -339,6 +354,7 @@ const Payroll: React.FC = () => {
         </TabsList>
         
         <TabsContent value="payroll" className="space-y-6">
+          {/* Summary Cards */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
             <Card className="card-dashboard">
               <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
@@ -378,6 +394,7 @@ const Payroll: React.FC = () => {
             </Card>
           </div>
 
+          {/* Search and filters */}
           <div className="flex justify-between flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[250px] flex items-center gap-4">
               <div className="relative flex-1">
@@ -400,6 +417,18 @@ const Payroll: React.FC = () => {
             </Button>
           </div>
 
+          {/* Inline form for adding/editing payroll */}
+          {isAddingPayroll && (
+            <div className="mb-6">
+              <InlinePayrollForm 
+                initialData={currentPayrollItem} 
+                onSave={handlePayrollSave} 
+                onCancel={handleCancelPayrollEdit} 
+              />
+            </div>
+          )}
+
+          {/* Payroll table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -473,6 +502,7 @@ const Payroll: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="slips" className="space-y-6">
+          {/* Pay slip search and filters */}
           <div className="flex justify-between flex-wrap gap-4 mb-6">
             <div className="flex-1 min-w-[250px] flex items-center gap-4">
               <div className="relative flex-1">
@@ -502,6 +532,29 @@ const Payroll: React.FC = () => {
             </Button>
           </div>
 
+          {/* Inline form for adding/editing pay slips */}
+          {isAddingPaySlip && (
+            <div className="mb-6">
+              <InlinePaySlipForm 
+                initialData={currentPaySlip} 
+                onSave={handlePaySlipSave} 
+                onCancel={handleCancelPaySlipEdit} 
+              />
+            </div>
+          )}
+
+          {/* Inline pay slip detail view */}
+          {isViewingPaySlipDetail && viewingPaySlip && (
+            <div className="mb-6">
+              <InlinePaySlipDetail 
+                paySlip={viewingPaySlip} 
+                onClose={handleClosePaySlipDetail}
+                onEdit={handleEditPaySlip}
+              />
+            </div>
+          )}
+
+          {/* Pay slip table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -597,96 +650,41 @@ const Payroll: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Payroll Form Dialog */}
-      <Dialog open={isPayrollDialogOpen} onOpenChange={setIsPayrollDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {currentPayrollItem ? "Edit Data Gaji" : "Tambah Data Gaji"}
-            </DialogTitle>
-          </DialogHeader>
-          <PayrollForm 
-            initialData={currentPayrollItem} 
-            onSave={handlePayrollSave} 
-            onCancel={() => setIsPayrollDialogOpen(false)} 
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Pay Slip Form Dialog */}
-      <Dialog open={isPaySlipDialogOpen} onOpenChange={setIsPaySlipDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {currentPaySlip ? "Edit Slip Gaji" : "Buat Slip Gaji"}
-            </DialogTitle>
-          </DialogHeader>
-          <PaySlipForm 
-            initialData={currentPaySlip} 
-            onSave={handlePaySlipSave} 
-            onCancel={() => setIsPaySlipDialogOpen(false)} 
-          />
-        </DialogContent>
-      </Dialog>
-
-      {/* Pay Slip Detail Dialog */}
-      <Dialog open={isPaySlipDetailOpen} onOpenChange={setIsPaySlipDetailOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Detail Slip Gaji</DialogTitle>
-          </DialogHeader>
-          {currentPaySlip && <PaySlipDetail paySlip={currentPaySlip} />}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaySlipDetailOpen(false)}>
-              Tutup
-            </Button>
-            <Button>
-              <Download className="mr-2 h-4 w-4" />
-              Unduh PDF
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Delete Payroll Confirmation Dialog */}
-      <Dialog open={isDeletePayrollDialogOpen} onOpenChange={setIsDeletePayrollDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Hapus</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-500">
-            Apakah Anda yakin ingin menghapus data gaji {currentPayrollItem?.employee}? Tindakan ini tidak dapat dibatalkan.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeletePayrollDialogOpen(false)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeletePayrollConfirm}>
+      <AlertDialog open={isDeletePayrollDialogOpen} onOpenChange={setIsDeletePayrollDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus data gaji {currentPayrollItem?.employee}? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePayrollConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Hapus
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Pay Slip Confirmation Dialog */}
-      <Dialog open={isDeletePaySlipDialogOpen} onOpenChange={setIsDeletePaySlipDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Konfirmasi Hapus</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-500">
-            Apakah Anda yakin ingin menghapus slip gaji untuk {currentPaySlip?.employeeName}? Tindakan ini tidak dapat dibatalkan.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeletePaySlipDialogOpen(false)}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDeletePaySlipConfirm}>
+      <AlertDialog open={isDeletePaySlipDialogOpen} onOpenChange={setIsDeletePaySlipDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus slip gaji untuk {currentPaySlip?.employeeName}? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePaySlipConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Hapus
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
