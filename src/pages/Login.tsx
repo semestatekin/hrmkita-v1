@@ -22,12 +22,19 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      // Now any non-empty username/password will work
+      if (!username || !password) {
+        toast.error("Username dan password harus diisi");
+        setIsLoading(false);
+        return;
+      }
+
       const success = await login(username, password);
       if (success) {
         toast.success("Login berhasil!");
         navigate("/");
       } else {
-        toast.error("Username atau password tidak valid");
+        toast.error("Terjadi kesalahan saat login");
       }
     } catch (error) {
       toast.error("Terjadi kesalahan saat login");
@@ -48,7 +55,7 @@ const Login = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">Masuk</CardTitle>
             <CardDescription className="text-center">
-              Masukkan username dan password Anda
+              Masukkan username dan password apapun untuk login demo
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -103,7 +110,7 @@ const Login = () => {
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
-              Demo credentials: admin / qwer1234
+              Demo: Gunakan username dan password apapun
             </p>
           </CardFooter>
         </Card>

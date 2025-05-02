@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { setLocalData, getLocalData, removeLocalData } from "@/utils/localStorage";
 
 // Define types for our authentication
 interface User {
@@ -17,9 +18,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Default credentials
-const DEFAULT_USERNAME = "admin";
-const DEFAULT_PASSWORD = "qwer1234";
+// Storage key for user data
+const USER_STORAGE_KEY = "hrm_user";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -27,24 +27,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check if user is already logged in from localStorage
-    const storedUser = localStorage.getItem("hrm_user");
+    const storedUser = getLocalData<User | null>(USER_STORAGE_KEY, null);
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      setUser(storedUser);
       setIsAuthenticated(true);
     }
   }, []);
 
   const login = async (username: string, password: string): Promise<boolean> => {
-    // Check against default credentials
-    if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
+    // Accept any credentials for demo purpose
+    if (username && password) {
       const userData: User = {
-        username: "admin",
-        name: "Administrator",
-        role: "admin",
+        username: username,
+        name: username.charAt(0).toUpperCase() + username.slice(1), // Capitalize first letter
+        role: username === "admin" ? "admin" : "user",
       };
       
       // Store user in localStorage
-      localStorage.setItem("hrm_user", JSON.stringify(userData));
+      setLocalData(USER_STORAGE_KEY, userData);
       
       // Update state
       setUser(userData);
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem("hrm_user");
+    removeLocalData(USER_STORAGE_KEY);
     setUser(null);
     setIsAuthenticated(false);
   };
