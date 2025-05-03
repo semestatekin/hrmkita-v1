@@ -77,7 +77,7 @@ const generateMockCandidates = (): Candidate[] => {
     // Mock photo URLs based on position
     const photoNumber = Math.floor(Math.random() * 5) + 1;
     
-    candidates.push({
+    const candidate: Candidate = {
       id: uuidv4(),
       fullName,
       position,
@@ -97,7 +97,21 @@ const generateMockCandidates = (): Candidate[] => {
         policeRecord: Math.random() > 0.5 ? "/mock-docs/skck.pdf" : undefined,
         healthCertificate: Math.random() > 0.5 ? "/mock-docs/surat-kesehatan.pdf" : undefined
       }
-    });
+    };
+    
+    // Add rejection reason for rejected candidates
+    if (status === 'rejected') {
+      const rejectionReasons = [
+        "Kualifikasi tidak sesuai dengan kebutuhan posisi",
+        "Pengalaman kerja kurang memadai",
+        "Tidak lolos tahap wawancara",
+        "Dokumen tidak lengkap",
+        "Posisi sudah terisi"
+      ];
+      candidate.rejectionReason = rejectionReasons[Math.floor(Math.random() * rejectionReasons.length)];
+    }
+    
+    candidates.push(candidate);
   }
   
   return candidates;
@@ -144,13 +158,29 @@ export const getCandidateById = (id: string) => {
   return Promise.resolve(candidate || null);
 };
 
-export const updateCandidateStatus = (id: string, status: Candidate['status']) => {
+export const updateCandidateStatus = (id: string, status: Candidate['status'], rejectionReason?: string) => {
   const candidateIndex = mockCandidates.findIndex(c => c.id === id);
   if (candidateIndex >= 0) {
     mockCandidates[candidateIndex].status = status;
+    
+    // Add rejection reason if provided and status is rejected
+    if (status === 'rejected' && rejectionReason) {
+      mockCandidates[candidateIndex].rejectionReason = rejectionReason;
+    }
+    
     return Promise.resolve(mockCandidates[candidateIndex]);
   }
   return Promise.reject(new Error("Candidate not found"));
+};
+
+export const addCandidate = (candidate: Omit<Candidate, 'id'>) => {
+  const newCandidate: Candidate = {
+    ...candidate,
+    id: uuidv4()
+  };
+  
+  mockCandidates.push(newCandidate);
+  return Promise.resolve(newCandidate);
 };
 
 export const getJobOpenings = () => {

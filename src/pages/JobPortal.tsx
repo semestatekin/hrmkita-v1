@@ -7,6 +7,7 @@ import { Candidate, JobOpening } from "@/types/jobPortal";
 import CandidatesList from "@/components/jobportal/CandidatesList";
 import ValidationProcess from "@/components/jobportal/ValidationProcess";
 import AcceptedCandidates from "@/components/jobportal/AcceptedCandidates";
+import RejectedCandidates from "@/components/jobportal/RejectedCandidates";
 import JobOpeningsList from "@/components/jobportal/JobOpeningsList";
 
 const JobPortal = () => {
@@ -46,6 +47,7 @@ const JobPortal = () => {
   const newCandidates = candidates.filter(c => c.status === 'new');
   const validatingCandidates = candidates.filter(c => c.status === 'validating');
   const acceptedCandidates = candidates.filter(c => c.status === 'accepted');
+  const rejectedCandidates = candidates.filter(c => c.status === 'rejected');
 
   return (
     <div className="space-y-6">
@@ -58,6 +60,7 @@ const JobPortal = () => {
           <TabsTrigger value="candidates">Data Kandidat ({newCandidates.length})</TabsTrigger>
           <TabsTrigger value="validation">Proses Validasi ({validatingCandidates.length})</TabsTrigger>
           <TabsTrigger value="accepted">Kandidat Diterima ({acceptedCandidates.length})</TabsTrigger>
+          <TabsTrigger value="rejected">Kandidat Tidak Diterima ({rejectedCandidates.length})</TabsTrigger>
           <TabsTrigger value="jobs">Lowongan Kerja</TabsTrigger>
         </TabsList>
 
@@ -80,6 +83,13 @@ const JobPortal = () => {
         <TabsContent value="accepted">
           <AcceptedCandidates 
             candidates={acceptedCandidates}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="rejected">
+          <RejectedCandidates 
+            candidates={rejectedCandidates}
             isLoading={isLoading}
           />
         </TabsContent>

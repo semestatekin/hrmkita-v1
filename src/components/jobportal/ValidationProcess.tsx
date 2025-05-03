@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -15,6 +14,8 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Check, Eye, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import CandidateDetail from "./CandidateDetail";
 
 interface ValidationProcessProps {
@@ -33,13 +34,18 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isAcceptDialogOpen, setIsAcceptDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isDocumentOpen, setIsDocumentOpen] = useState(false);
+  const [documentType, setDocumentType] = useState<string | null>(null);
+  const [documentSrc, setDocumentSrc] = useState<string | null>(null);
 
   const handleReject = async (candidateId: string) => {
     try {
-      const updatedCandidate = await updateCandidateStatus(candidateId, 'rejected');
+      const updatedCandidate = await updateCandidateStatus(candidateId, 'rejected', rejectionReason);
       onStatusUpdate(updatedCandidate);
       toast.success("Kandidat ditolak");
       setIsRejectDialogOpen(false);
+      setRejectionReason("");
     } catch (error) {
       toast.error("Gagal menolak kandidat");
     }
@@ -59,6 +65,14 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
   const handleViewDetail = (candidate: Candidate) => {
     setSelectedCandidate(candidate);
     setIsDetailOpen(true);
+  };
+
+  const handleViewDocument = (src: string | undefined, type: string) => {
+    if (!src) return;
+    
+    setDocumentSrc(src);
+    setDocumentType(type);
+    setIsDocumentOpen(true);
   };
 
   // Filter candidates based on search query
@@ -164,7 +178,10 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
               </DialogDescription>
             </DialogHeader>
             
-            <CandidateDetail candidate={selectedCandidate} />
+            <CandidateDetail 
+              candidate={selectedCandidate} 
+              onViewDocument={(src, type) => handleViewDocument(src, type)}  
+            />
             
             <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
               <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
@@ -209,6 +226,17 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
             <div className="py-4">
               <p><strong>Nama:</strong> {selectedCandidate.fullName}</p>
               <p><strong>Posisi:</strong> {selectedCandidate.position}</p>
+              
+              <div className="mt-4">
+                <Label htmlFor="rejectionReason">Alasan Penolakan (Opsional)</Label>
+                <Textarea 
+                  id="rejectionReason"
+                  placeholder="Masukkan alasan penolakan kandidat..."
+                  className="mt-1"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
@@ -252,6 +280,65 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={isDocumentOpen} onOpenChange={setIsDocumentOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {documentType === 'photo' 
+                ? 'Foto Kandidat' 
+                : documentType === 'idCard'
+                ? 'KTP Kandidat'
+                : documentType === 'certificate'
+                ? 'Ijazah'
+                : documentType === 'cv'
+                ? 'Curriculum Vitae'
+                : documentType === 'applicationLetter'
+                ? 'Surat Lamaran'
+                : documentType === 'policeRecord'
+                ? 'SKCK'
+                : documentType === 'healthCertificate'
+                ? 'Surat Kesehatan'
+                : 'Dokumen'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex justify-center my-4">
+            {documentType === 'photo' ? (
+              <img 
+                src={documentSrc || ''} 
+                alt="Foto Kandidat" 
+                className="max-w-full max-h-[70vh] object-contain" 
+              />
+            ) : (
+              <div className="bg-slate-100 p-10 rounded-md w-full text-center">
+                <p className="text-lg font-medium mb-4">Pratinjau Dokumen</p>
+                <p className="text-sm text-gray-500">
+                  Dokumen {documentType === 'idCard' 
+                    ? 'KTP' 
+                    : documentType === 'certificate'
+                    ? 'Ijazah'
+                    : documentType === 'cv'
+                    ? 'CV'
+                    : documentType === 'applicationLetter'
+                    ? 'Surat Lamaran'
+                    : documentType === 'policeRecord'
+                    ? 'SKCK'
+                    : documentType === 'healthCertificate'
+                    ? 'Surat Kesehatan'
+                    : ''
+                  }</p>
+                <div className="mt-4">
+                  <Button onClick={() => window.open(documentSrc || '', '_blank')}>
+                    Buka Dokumen
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

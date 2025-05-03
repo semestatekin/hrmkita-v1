@@ -10,6 +10,7 @@ export interface Candidate {
   experience?: string;
   appliedDate: string;
   status: 'new' | 'validating' | 'rejected' | 'accepted';
+  rejectionReason?: string;
   documents: {
     photo: string;
     idCard: string;

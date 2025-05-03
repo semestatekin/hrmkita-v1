@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +20,7 @@ import {
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { v4 as uuidv4 } from "uuid";
 
 const jobOpenings = [
   {
@@ -74,6 +74,7 @@ const Login = () => {
     policeRecord: null,
     healthCertificate: null,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ const Login = () => {
     }
   };
 
-  const onApplicationSubmit = (data: ApplicationFormData) => {
+  const onApplicationSubmit = async (data: ApplicationFormData) => {
     // Check if all required documents are uploaded
     const requiredFiles = ['photo', 'idCard', 'certificate', 'cv', 'applicationLetter'];
     const missingFiles = requiredFiles.filter(file => !uploadedFiles[file as keyof typeof uploadedFiles]);
@@ -140,21 +141,63 @@ const Login = () => {
       toast.error("Mohon unggah semua dokumen yang diperlukan");
       return;
     }
+
+    setIsSubmitting(true);
     
-    toast.success("Lamaran berhasil dikirim! Tim kami akan menghubungi Anda untuk proses selanjutnya.");
-    // Reset form after submission
-    form.reset();
-    setUploadedFiles({
-      photo: null,
-      idCard: null,
-      certificate: null,
-      cv: null,
-      applicationLetter: null,
-      policeRecord: null,
-      healthCertificate: null,
-    });
-    setActiveTab("jobinfo");
-    setSelectedJob(null);
+    try {
+      // Create a candidate object
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      
+      // Simulate saving the candidate data
+      // In a real app, this would make an API call to your backend
+      const newCandidate = {
+        id: uuidv4(),
+        fullName: data.fullName,
+        position: data.position,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        education: data.education,
+        experience: data.experience || undefined,
+        appliedDate: formattedDate,
+        status: 'new',
+        documents: {
+          // In a real app, these would be URLs to the uploaded files
+          photo: `/mock-photos/photo${Math.floor(Math.random() * 5) + 1}.jpg`,
+          idCard: "/mock-docs/ktp.pdf",
+          certificate: "/mock-docs/ijazah.pdf",
+          cv: "/mock-docs/cv.pdf",
+          applicationLetter: "/mock-docs/surat-lamaran.pdf",
+          policeRecord: uploadedFiles.policeRecord ? "/mock-docs/skck.pdf" : undefined,
+          healthCertificate: uploadedFiles.healthCertificate ? "/mock-docs/surat-kesehatan.pdf" : undefined
+        }
+      };
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast.success("Lamaran berhasil dikirim! Tim kami akan menghubungi Anda untuk proses selanjutnya.");
+      
+      // Reset form and state after submission
+      form.reset();
+      setUploadedFiles({
+        photo: null,
+        idCard: null,
+        certificate: null,
+        cv: null,
+        applicationLetter: null,
+        policeRecord: null,
+        healthCertificate: null,
+      });
+      setActiveTab("jobinfo");
+      setSelectedJob(null);
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat mengirim lamaran");
+      console.error("Application submission error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -518,7 +561,9 @@ const Login = () => {
                         >
                           Batal
                         </Button>
-                        <Button type="submit">Kirim Lamaran</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? "Mengirim..." : "Kirim Lamaran"}
+                        </Button>
                       </div>
                     </form>
                   </Form>

@@ -11,17 +11,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Candidate } from "@/types/jobPortal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Check, Eye, Search } from "lucide-react";
+import { Eye, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import CandidateDetail from "./CandidateDetail";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
-interface AcceptedCandidatesProps {
+interface RejectedCandidatesProps {
   candidates: Candidate[];
   isLoading: boolean;
 }
 
-const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isLoading }) => {
+const RejectedCandidates: React.FC<RejectedCandidatesProps> = ({ 
+  candidates, 
+  isLoading 
+}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -54,7 +58,7 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
     <>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <h3 className="text-xl font-medium">Daftar Kandidat Diterima</h3>
+          <h3 className="text-xl font-medium">Daftar Kandidat Tidak Diterima</h3>
           <div className="relative max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -71,7 +75,7 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
           <div className="text-center py-8">Memuat data kandidat...</div>
         ) : filteredCandidates.length === 0 ? (
           <div className="text-center py-8 border rounded-md bg-muted/20">
-            {searchQuery ? "Tidak ada kandidat yang sesuai dengan pencarian" : "Belum ada kandidat yang diterima"}
+            {searchQuery ? "Tidak ada kandidat yang sesuai dengan pencarian" : "Belum ada kandidat yang ditolak"}
           </div>
         ) : (
           <div className="border rounded-md">
@@ -82,6 +86,7 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
                   <TableHead>Posisi</TableHead>
                   <TableHead>Pendidikan</TableHead>
                   <TableHead>Tanggal Lamaran</TableHead>
+                  <TableHead>Alasan Penolakan</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -92,6 +97,11 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
                     <TableCell>{candidate.position}</TableCell>
                     <TableCell>{candidate.education}</TableCell>
                     <TableCell>{candidate.appliedDate}</TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {candidate.rejectionReason || "Tidak ada alasan"}
+                      </span>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button 
                         size="sm" 
@@ -117,13 +127,18 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
             <DialogHeader>
               <DialogTitle>Detail Kandidat</DialogTitle>
             </DialogHeader>
-
+            
             <div className="mb-4">
-              <Badge variant="default" className="bg-green-600 mb-2">
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Diterima
-              </Badge>
+              <Badge variant="destructive" className="mb-2">Ditolak</Badge>
+              {selectedCandidate.rejectionReason && (
+                <div className="bg-red-50 border border-red-100 p-3 rounded-md mt-1">
+                  <p className="text-sm font-medium text-red-800">Alasan Penolakan:</p>
+                  <p className="text-sm text-red-600">{selectedCandidate.rejectionReason}</p>
+                </div>
+              )}
             </div>
+
+            <Separator className="my-4" />
             
             <CandidateDetail 
               candidate={selectedCandidate} 
@@ -195,4 +210,4 @@ const AcceptedCandidates: React.FC<AcceptedCandidatesProps> = ({ candidates, isL
   );
 };
 
-export default AcceptedCandidates;
+export default RejectedCandidates;
