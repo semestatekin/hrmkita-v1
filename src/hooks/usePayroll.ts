@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { 
@@ -255,10 +254,12 @@ export const usePayroll = () => {
     summary,
     searchQuery,
     isDeletePayrollDialogOpen,
+    setIsDeletePayrollDialogOpen,
     paySlips,
     filteredPaySlips,
     paySlipSearchQuery,
     isDeletePaySlipDialogOpen,
+    setIsDeletePaySlipDialogOpen,
     currentPayrollItem,
     isAddingPayroll, 
     currentPaySlip,
