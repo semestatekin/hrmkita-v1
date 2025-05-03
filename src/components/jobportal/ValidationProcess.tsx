@@ -1,22 +1,17 @@
+
 import React, { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Candidate } from "@/types/jobPortal";
 import { updateCandidateStatus } from "@/services/jobPortalService";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Check, Eye, Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Check, X } from "lucide-react";
 import CandidateDetail from "./CandidateDetail";
+import CandidateSearchBar from "./candidate-table/CandidateSearchBar";
+import CandidateTable from "./candidate-table/CandidateTable";
+import RejectionDialog from "./dialogs/RejectionDialog";
+import AcceptanceDialog from "./dialogs/AcceptanceDialog";
+import DocumentViewerDialog from "./dialogs/DocumentViewerDialog";
 
 interface ValidationProcessProps {
   candidates: Candidate[];
@@ -83,22 +78,43 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
       candidate.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const renderActionButtons = (candidate: Candidate) => {
+    return (
+      <>
+        <Button 
+          size="sm"
+          variant="destructive"
+          onClick={() => {
+            setSelectedCandidate(candidate);
+            setIsRejectDialogOpen(true);
+          }}
+        >
+          <X className="h-4 w-4 mr-1" />
+          Tolak
+        </Button>
+        <Button 
+          size="sm"
+          variant="default"
+          onClick={() => {
+            setSelectedCandidate(candidate);
+            setIsAcceptDialogOpen(true);
+          }}
+        >
+          <Check className="h-4 w-4 mr-1" />
+          Terima
+        </Button>
+      </>
+    );
+  };
+
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-          <h3 className="text-xl font-medium">Proses Validasi Kandidat</h3>
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Cari kandidat..."
-              className="pl-8 max-w-xs"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
+        <CandidateSearchBar 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          title="Proses Validasi Kandidat"
+        />
 
         {isLoading ? (
           <div className="text-center py-8">Memuat data kandidat...</div>
@@ -107,63 +123,11 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
             {searchQuery ? "Tidak ada kandidat yang sesuai dengan pencarian" : "Belum ada kandidat dalam proses validasi"}
           </div>
         ) : (
-          <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Posisi</TableHead>
-                  <TableHead>Pendidikan</TableHead>
-                  <TableHead>Tanggal Lamaran</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCandidates.map((candidate) => (
-                  <TableRow key={candidate.id}>
-                    <TableCell className="font-medium">{candidate.fullName}</TableCell>
-                    <TableCell>{candidate.position}</TableCell>
-                    <TableCell>{candidate.education}</TableCell>
-                    <TableCell>{candidate.appliedDate}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleViewDetail(candidate)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Detail
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => {
-                            setSelectedCandidate(candidate);
-                            setIsRejectDialogOpen(true);
-                          }}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Tolak
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="default"
-                          onClick={() => {
-                            setSelectedCandidate(candidate);
-                            setIsAcceptDialogOpen(true);
-                          }}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          Terima
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <CandidateTable
+            candidates={filteredCandidates}
+            onViewDetail={handleViewDetail}
+            actionButtons={renderActionButtons}
+          />
         )}
       </div>
 
@@ -213,132 +177,29 @@ const ValidationProcess: React.FC<ValidationProcessProps> = ({
         </Dialog>
       )}
 
-      {/* Reject Confirmation Dialog */}
-      {selectedCandidate && (
-        <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tolak Kandidat</DialogTitle>
-              <DialogDescription>
-                Apakah Anda yakin ingin menolak kandidat ini? Tindakan ini tidak dapat dibatalkan.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <p><strong>Nama:</strong> {selectedCandidate.fullName}</p>
-              <p><strong>Posisi:</strong> {selectedCandidate.position}</p>
-              
-              <div className="mt-4">
-                <Label htmlFor="rejectionReason">Alasan Penolakan (Opsional)</Label>
-                <Textarea 
-                  id="rejectionReason"
-                  placeholder="Masukkan alasan penolakan kandidat..."
-                  className="mt-1"
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
-                Batal
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={() => handleReject(selectedCandidate.id)}
-              >
-                Ya, Tolak Kandidat
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Dialogs */}
+      <RejectionDialog
+        candidate={selectedCandidate}
+        open={isRejectDialogOpen}
+        onOpenChange={setIsRejectDialogOpen}
+        rejectionReason={rejectionReason}
+        setRejectionReason={setRejectionReason}
+        onReject={handleReject}
+      />
 
-      {/* Accept Confirmation Dialog */}
-      {selectedCandidate && (
-        <Dialog open={isAcceptDialogOpen} onOpenChange={setIsAcceptDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Terima Kandidat</DialogTitle>
-              <DialogDescription>
-                Apakah Anda yakin ingin menerima kandidat ini?
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <p><strong>Nama:</strong> {selectedCandidate.fullName}</p>
-              <p><strong>Posisi:</strong> {selectedCandidate.position}</p>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAcceptDialogOpen(false)}>
-                Batal
-              </Button>
-              <Button 
-                onClick={() => handleAccept(selectedCandidate.id)}
-              >
-                Ya, Terima Kandidat
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <AcceptanceDialog
+        candidate={selectedCandidate}
+        open={isAcceptDialogOpen}
+        onOpenChange={setIsAcceptDialogOpen}
+        onAccept={handleAccept}
+      />
 
-      {/* Document Viewer Dialog */}
-      <Dialog open={isDocumentOpen} onOpenChange={setIsDocumentOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {documentType === 'photo' 
-                ? 'Foto Kandidat' 
-                : documentType === 'idCard'
-                ? 'KTP Kandidat'
-                : documentType === 'certificate'
-                ? 'Ijazah'
-                : documentType === 'cv'
-                ? 'Curriculum Vitae'
-                : documentType === 'applicationLetter'
-                ? 'Surat Lamaran'
-                : documentType === 'policeRecord'
-                ? 'SKCK'
-                : documentType === 'healthCertificate'
-                ? 'Surat Kesehatan'
-                : 'Dokumen'}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="flex justify-center my-4">
-            {documentType === 'photo' ? (
-              <img 
-                src={documentSrc || ''} 
-                alt="Foto Kandidat" 
-                className="max-w-full max-h-[70vh] object-contain" 
-              />
-            ) : (
-              <div className="bg-slate-100 p-10 rounded-md w-full text-center">
-                <p className="text-lg font-medium mb-4">Pratinjau Dokumen</p>
-                <p className="text-sm text-gray-500">
-                  Dokumen {documentType === 'idCard' 
-                    ? 'KTP' 
-                    : documentType === 'certificate'
-                    ? 'Ijazah'
-                    : documentType === 'cv'
-                    ? 'CV'
-                    : documentType === 'applicationLetter'
-                    ? 'Surat Lamaran'
-                    : documentType === 'policeRecord'
-                    ? 'SKCK'
-                    : documentType === 'healthCertificate'
-                    ? 'Surat Kesehatan'
-                    : ''
-                  }</p>
-                <div className="mt-4">
-                  <Button onClick={() => window.open(documentSrc || '', '_blank')}>
-                    Buka Dokumen
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DocumentViewerDialog
+        open={isDocumentOpen}
+        onOpenChange={setIsDocumentOpen}
+        documentType={documentType}
+        documentSrc={documentSrc}
+      />
     </>
   );
 };
