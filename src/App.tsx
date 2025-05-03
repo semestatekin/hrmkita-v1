@@ -21,6 +21,7 @@ import Payroll from "./pages/Payroll";
 import Departments from "./pages/Departments";
 import Designations from "./pages/Designations";
 import Performance from "./pages/Performance";
+import JobPortal from "./pages/JobPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -111,6 +112,14 @@ const App = () => (
                 <PrivateRoute>
                   <Layout>
                     <Performance />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/job-portal" element={
+                <PrivateRoute>
+                  <Layout>
+                    <JobPortal />
                   </Layout>
                 </PrivateRoute>
               } />
