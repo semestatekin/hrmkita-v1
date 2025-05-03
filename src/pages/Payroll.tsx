@@ -1,365 +1,87 @@
 
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { 
-  Calendar, 
-  FileText, 
-  Download, 
-  Filter, 
-  Search, 
-  MoreHorizontal, 
-  Plus, 
-  ArrowLeft,
-  CreditCard
-} from "lucide-react";
-import { toast } from "sonner";
-import { PayrollItem, PayrollSummary } from "@/types/payroll";
-import { 
-  getPayroll, 
-  getPayrollSummary, 
-  createPayrollItem, 
-  updatePayrollItem, 
-  deletePayrollItem,
-  processBulkPayment,
-  BulkPaymentOptions,
-  BulkPaymentResult
-} from "@/services/payrollService";
-import { 
-  getPaySlips, 
-  createPaySlip, 
-  updatePaySlip, 
-  deletePaySlip,
-  issuePaySlip,
-  markPaySlipAsPaid 
-} from "@/services/paySlipService";
-import { PaySlip, paySlipStatusColors, paySlipStatusLabels } from "@/types/payslip";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Calendar } from "lucide-react";
+
+// Custom hooks
+import { usePayroll } from "@/hooks/usePayroll";
+
+// Component imports
+import PayrollSummary from "@/components/payroll/PayrollSummary";
+import PayrollTable from "@/components/payroll/PayrollTable";
+import PayrollSearch from "@/components/payroll/PayrollSearch";
+import PaySlipTable from "@/components/payroll/PaySlipTable";
+import PaySlipSearch from "@/components/payroll/PaySlipSearch";
 import InlinePayrollForm from "@/components/payroll/InlinePayrollForm";
 import InlinePaySlipForm from "@/components/payroll/InlinePaySlipForm";
 import InlinePaySlipDetail from "@/components/payroll/InlinePaySlipDetail";
 import BulkPaymentModal from "@/components/payroll/BulkPaymentModal";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import PaymentResultDialog from "@/components/payroll/PaymentResultDialog";
 
-const statusColors: Record<string, string> = {
-  paid: "bg-green-500",
-  processing: "bg-yellow-500",
-  pending: "bg-gray-500",
-};
-
-const statusLabels: Record<string, string> = {
-  paid: "Dibayarkan",
-  processing: "Diproses",
-  pending: "Menunggu",
-};
+// Service imports
+import { processBulkPayment, BulkPaymentOptions } from "@/services/payrollService";
 
 const Payroll: React.FC = () => {
-  // Payroll state
-  const [payrollData, setPayrollData] = useState<PayrollItem[]>([]);
-  const [filteredPayroll, setFilteredPayroll] = useState<PayrollItem[]>([]);
-  const [summary, setSummary] = useState<PayrollSummary>({
-    totalAmount: "Rp 0",
-    employeeCount: 0,
-    averageSalary: "Rp 0",
-    totalBonus: "Rp 0",
-    totalDeductions: "Rp 0",
-  });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isDeletePayrollDialogOpen, setIsDeletePayrollDialogOpen] = useState(false);
-  
-  // Pay slip state
-  const [paySlips, setPaySlips] = useState<PaySlip[]>([]);
-  const [filteredPaySlips, setFilteredPaySlips] = useState<PaySlip[]>([]);
-  const [paySlipSearchQuery, setPaySlipSearchQuery] = useState("");
-  const [isDeletePaySlipDialogOpen, setIsDeletePaySlipDialogOpen] = useState(false);
-  
-  // Active tab state
   const [activeTab, setActiveTab] = useState("payroll");
   
-  // Inline editing states
-  const [currentPayrollItem, setCurrentPayrollItem] = useState<PayrollItem | null>(null);
-  const [isAddingPayroll, setIsAddingPayroll] = useState(false);
-  const [currentPaySlip, setCurrentPaySlip] = useState<PaySlip | null>(null);
-  const [isAddingPaySlip, setIsAddingPaySlip] = useState(false);
-  const [isViewingPaySlipDetail, setIsViewingPaySlipDetail] = useState(false);
-  const [viewingPaySlip, setViewingPaySlip] = useState<PaySlip | null>(null);
-
-  // Bulk payment states
-  const [isBulkPaymentModalOpen, setIsBulkPaymentModalOpen] = useState(false);
-  const [bulkPaymentResult, setBulkPaymentResult] = useState<BulkPaymentResult | null>(null);
-  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
-
-  // Load payroll data
-  useEffect(() => {
-    const loadedPayroll = getPayroll();
-    setPayrollData(loadedPayroll);
-    setFilteredPayroll(loadedPayroll);
+  const {
+    // State
+    summary,
+    filteredPayroll,
+    searchQuery,
+    isDeletePayrollDialogOpen,
+    filteredPaySlips,
+    paySlipSearchQuery,
+    isDeletePaySlipDialogOpen,
+    currentPayrollItem,
+    isAddingPayroll,
+    currentPaySlip,
+    isAddingPaySlip,
+    isViewingPaySlipDetail,
+    viewingPaySlip,
+    isBulkPaymentModalOpen,
+    bulkPaymentResult,
+    isResultDialogOpen,
     
-    const payrollSummary = getPayrollSummary();
-    setSummary(payrollSummary);
+    // Payroll handlers
+    handleSearchChange,
+    handleCreatePayroll,
+    handleEditPayrollItem,
+    handleCancelPayrollEdit,
+    handleDeletePayrollClick,
+    handleDeletePayrollConfirm,
+    handlePayrollSave,
     
-    const loadedPaySlips = getPaySlips();
-    setPaySlips(loadedPaySlips);
-    setFilteredPaySlips(loadedPaySlips);
-  }, []);
-
-  // Filter payroll when search changes
-  useEffect(() => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const filtered = payrollData.filter(
-        (item) => 
-          item.employee.toLowerCase().includes(query) || 
-          item.position.toLowerCase().includes(query)
-      );
-      setFilteredPayroll(filtered);
-    } else {
-      setFilteredPayroll(payrollData);
-    }
-  }, [searchQuery, payrollData]);
-
-  // Filter pay slips when search changes
-  useEffect(() => {
-    if (paySlipSearchQuery) {
-      const query = paySlipSearchQuery.toLowerCase();
-      const filtered = paySlips.filter(
-        (slip) => 
-          slip.employeeName.toLowerCase().includes(query) || 
-          slip.position.toLowerCase().includes(query)
-      );
-      setFilteredPaySlips(filtered);
-    } else {
-      setFilteredPaySlips(paySlips);
-    }
-  }, [paySlipSearchQuery, paySlips]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handlePaySlipSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPaySlipSearchQuery(e.target.value);
-  };
-
-  const handleCreatePayroll = () => {
-    setCurrentPayrollItem(null);
-    setIsAddingPayroll(true);
-  };
-
-  const handleEditPayrollItem = (item: PayrollItem) => {
-    setCurrentPayrollItem(item);
-    setIsAddingPayroll(true);
-  };
-
-  const handleCancelPayrollEdit = () => {
-    setCurrentPayrollItem(null);
-    setIsAddingPayroll(false);
-  };
-
-  const handleDeletePayrollClick = (item: PayrollItem) => {
-    setCurrentPayrollItem(item);
-    setIsDeletePayrollDialogOpen(true);
-  };
-
-  const handleDeletePayrollConfirm = () => {
-    if (currentPayrollItem) {
-      deletePayrollItem(currentPayrollItem.id);
-      
-      // Refresh data
-      const updatedPayroll = getPayroll();
-      setPayrollData(updatedPayroll);
-      
-      // Update summary
-      const updatedSummary = getPayrollSummary();
-      setSummary(updatedSummary);
-      
-      setIsDeletePayrollDialogOpen(false);
-      
-      toast.success(`Data gaji ${currentPayrollItem.employee} telah dihapus.`);
-    }
-  };
-
-  const handleCreatePaySlip = () => {
-    setCurrentPaySlip(null);
-    setIsAddingPaySlip(true);
-  };
-
-  const handleViewPaySlip = (slip: PaySlip) => {
-    setViewingPaySlip(slip);
-    setIsViewingPaySlipDetail(true);
-  };
-
-  const handleClosePaySlipDetail = () => {
-    setViewingPaySlip(null);
-    setIsViewingPaySlipDetail(false);
-  };
-
-  const handleEditPaySlip = (slip: PaySlip) => {
-    setCurrentPaySlip(slip);
-    setIsAddingPaySlip(true);
-    // If viewing details, close the detail view
-    if (isViewingPaySlipDetail) {
-      setIsViewingPaySlipDetail(false);
-    }
-  };
-
-  const handleCancelPaySlipEdit = () => {
-    setCurrentPaySlip(null);
-    setIsAddingPaySlip(false);
-  };
-
-  const handleDeletePaySlipClick = (slip: PaySlip) => {
-    setCurrentPaySlip(slip);
-    setIsDeletePaySlipDialogOpen(true);
-  };
-
-  const handleDeletePaySlipConfirm = () => {
-    if (currentPaySlip) {
-      deletePaySlip(currentPaySlip.id);
-      
-      // Refresh data
-      const updatedPaySlips = getPaySlips();
-      setPaySlips(updatedPaySlips);
-      
-      setIsDeletePaySlipDialogOpen(false);
-      
-      toast.success(`Slip gaji untuk ${currentPaySlip.employeeName} telah dihapus.`);
-    }
-  };
-
-  const handleIssuePaySlip = (slip: PaySlip) => {
-    issuePaySlip(slip.id);
+    // Pay slip handlers
+    handlePaySlipSearchChange,
+    handleCreatePaySlip,
+    handleViewPaySlip,
+    handleClosePaySlipDetail,
+    handleEditPaySlip,
+    handleCancelPaySlipEdit,
+    handleDeletePaySlipClick,
+    handleDeletePaySlipConfirm,
+    handleIssuePaySlip,
+    handleMarkAsPaid,
+    handlePaySlipSave,
     
-    // Refresh data
-    const updatedPaySlips = getPaySlips();
-    setPaySlips(updatedPaySlips);
-    
-    toast.success(`Slip gaji untuk ${slip.employeeName} telah diterbitkan.`);
-  };
-
-  const handleMarkAsPaid = (slip: PaySlip) => {
-    markPaySlipAsPaid(slip.id);
-    
-    // Refresh data
-    const updatedPaySlips = getPaySlips();
-    setPaySlips(updatedPaySlips);
-    
-    toast.success(`Slip gaji untuk ${slip.employeeName} telah ditandai sebagai dibayar.`);
-  };
-
-  const handlePayrollSave = (data: PayrollItem) => {
-    if (currentPayrollItem) {
-      // Update existing payroll item
-      updatePayrollItem({
-        ...data,
-        id: currentPayrollItem.id
-      });
-      toast.success(`Data gaji ${data.employee} telah berhasil diperbarui.`);
-    } else {
-      // Create new payroll item
-      createPayrollItem(data);
-      toast.success(`Data gaji ${data.employee} telah berhasil ditambahkan.`);
-    }
-    
-    // Refresh data
-    const updatedPayroll = getPayroll();
-    setPayrollData(updatedPayroll);
-    
-    // Update summary
-    const updatedSummary = getPayrollSummary();
-    setSummary(updatedSummary);
-    
-    setIsAddingPayroll(false);
-    setCurrentPayrollItem(null);
-  };
-
-  const handlePaySlipSave = (data: PaySlip) => {
-    if (currentPaySlip) {
-      // Update existing pay slip
-      updatePaySlip({
-        ...data,
-        id: currentPaySlip.id
-      });
-      toast.success(`Slip gaji untuk ${data.employeeName} telah berhasil diperbarui.`);
-    } else {
-      // Create new pay slip
-      createPaySlip(data);
-      toast.success(`Slip gaji untuk ${data.employeeName} telah berhasil ditambahkan.`);
-    }
-    
-    // Refresh data
-    const updatedPaySlips = getPaySlips();
-    setPaySlips(updatedPaySlips);
-    
-    setIsAddingPaySlip(false);
-    setCurrentPaySlip(null);
-  };
-
-  // Bulk payment handlers
-  const handleOpenBulkPayment = () => {
-    setIsBulkPaymentModalOpen(true);
-  };
-
-  const handleCloseBulkPayment = () => {
-    setIsBulkPaymentModalOpen(false);
-  };
+    // Bulk payment handlers
+    handleOpenBulkPayment,
+    handleCloseBulkPayment,
+    handleCloseResultDialog,
+  } = usePayroll();
 
   const handleProcessBulkPayment = (data: BulkPaymentOptions) => {
     // Process the bulk payment
     const result = processBulkPayment(data);
     
     // Close the bulk payment modal
-    setIsBulkPaymentModalOpen(false);
+    handleCloseBulkPayment();
     
-    // Set the result and open the result dialog
-    setBulkPaymentResult(result);
-    setIsResultDialogOpen(true);
-    
-    // Refresh data
-    const updatedPayroll = getPayroll();
-    setPayrollData(updatedPayroll);
-    
-    // Update summary
-    const updatedSummary = getPayrollSummary();
-    setSummary(updatedSummary);
-    
-    // Update pay slips
-    const updatedPaySlips = getPaySlips();
-    setPaySlips(updatedPaySlips);
-    
-    toast.success(`Proses pembayaran gaji massal berhasil untuk ${result.successCount} karyawan.`);
-  };
-
-  const handleCloseResultDialog = () => {
-    setIsResultDialogOpen(false);
-    setBulkPaymentResult(null);
+    // Handle the result
+    handleProcessBulkPayment(result);
   };
 
   return (
@@ -387,73 +109,15 @@ const Payroll: React.FC = () => {
         
         <TabsContent value="payroll" className="space-y-6">
           {/* Summary Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-            <Card className="card-dashboard">
-              <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-                <CardTitle className="text-sm font-medium">Total Penggajian</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <span className="text-2xl font-bold">{summary.totalAmount}</span>
-                <p className="text-xs text-muted-foreground">{summary.employeeCount} karyawan</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="card-dashboard">
-              <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-                <CardTitle className="text-sm font-medium">Rata-rata Gaji</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <span className="text-2xl font-bold">{summary.averageSalary}</span>
-              </CardContent>
-            </Card>
-            
-            <Card className="card-dashboard">
-              <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-                <CardTitle className="text-sm font-medium">Total Bonus</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <span className="text-2xl font-bold">{summary.totalBonus}</span>
-              </CardContent>
-            </Card>
-            
-            <Card className="card-dashboard">
-              <CardHeader className="flex flex-row items-center justify-between p-4 pb-2">
-                <CardTitle className="text-sm font-medium">Total Potongan</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <span className="text-2xl font-bold">{summary.totalDeductions}</span>
-              </CardContent>
-            </Card>
-          </div>
+          <PayrollSummary summary={summary} />
 
           {/* Search and filters */}
-          <div className="flex justify-between flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[250px] flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  placeholder="Cari karyawan..." 
-                  className="pl-9" 
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                />
-              </div>
-              <Button variant="outline">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleOpenBulkPayment}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pembayaran Massal
-              </Button>
-              <Button onClick={handleCreatePayroll}>
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Penggajian
-              </Button>
-            </div>
-          </div>
+          <PayrollSearch 
+            searchQuery={searchQuery}
+            onSearchChange={handleSearchChange}
+            onAddPayroll={handleCreatePayroll}
+            onBulkPayment={handleOpenBulkPayment}
+          />
 
           {/* Inline form for adding/editing payroll */}
           {isAddingPayroll && (
@@ -467,114 +131,21 @@ const Payroll: React.FC = () => {
           )}
 
           {/* Payroll table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Karyawan</TableHead>
-                  <TableHead>Gaji Pokok</TableHead>
-                  <TableHead>Bonus</TableHead>
-                  <TableHead>Potongan</TableHead>
-                  <TableHead>Total Gaji</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayroll.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                      Tidak ada data penggajian
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPayroll.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="font-medium text-gray-600">
-                              {item.employee.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="ml-3">
-                            <div className="font-medium text-gray-900">{item.employee}</div>
-                            <div className="text-sm text-gray-500">{item.position}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{item.salary}</TableCell>
-                      <TableCell>{item.bonus}</TableCell>
-                      <TableCell>{item.deductions}</TableCell>
-                      <TableCell className="font-bold">{item.total}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${statusColors[item.status]} text-white font-normal`}
-                        >
-                          {statusLabels[item.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEditPayrollItem(item)}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDeletePayrollClick(item)}>
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <PayrollTable 
+            payrollItems={filteredPayroll}
+            onEditItem={handleEditPayrollItem}
+            onDeleteItem={handleDeletePayrollClick}
+          />
         </TabsContent>
 
         <TabsContent value="slips" className="space-y-6">
           {/* Pay slip search and filters */}
-          <div className="flex justify-between flex-wrap gap-4 mb-6">
-            <div className="flex-1 min-w-[250px] flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input 
-                  placeholder="Cari karyawan..." 
-                  className="pl-9" 
-                  value={paySlipSearchQuery}
-                  onChange={handlePaySlipSearchChange}
-                />
-              </div>
-              <Select defaultValue="all">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="issued">Diterbitkan</SelectItem>
-                  <SelectItem value="paid">Dibayar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleOpenBulkPayment}>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pembayaran Massal
-              </Button>
-              <Button onClick={handleCreatePaySlip}>
-                <Plus className="mr-2 h-4 w-4" />
-                Buat Slip Gaji
-              </Button>
-            </div>
-          </div>
+          <PaySlipSearch 
+            searchQuery={paySlipSearchQuery}
+            onSearchChange={handlePaySlipSearchChange}
+            onAddPaySlip={handleCreatePaySlip}
+            onBulkPayment={handleOpenBulkPayment}
+          />
 
           {/* Inline form for adding/editing pay slips */}
           {isAddingPaySlip && (
@@ -599,98 +170,14 @@ const Payroll: React.FC = () => {
           )}
 
           {/* Pay slip table */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Karyawan</TableHead>
-                  <TableHead>Bulan</TableHead>
-                  <TableHead>Gaji Pokok</TableHead>
-                  <TableHead>Tunjangan</TableHead>
-                  <TableHead>Potongan</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPaySlips.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                      Tidak ada slip gaji
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPaySlips.map((slip) => (
-                    <TableRow key={slip.id}>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="font-medium text-gray-600">
-                              {slip.employeeName.charAt(0)}
-                            </span>
-                          </div>
-                          <div className="ml-3">
-                            <div className="font-medium text-gray-900">{slip.employeeName}</div>
-                            <div className="text-sm text-gray-500">{slip.position}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{`${slip.month} ${slip.year}`}</TableCell>
-                      <TableCell>{slip.baseSalary}</TableCell>
-                      <TableCell>{slip.allowances}</TableCell>
-                      <TableCell>{slip.deductions}</TableCell>
-                      <TableCell className="font-bold">{slip.totalSalary}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${paySlipStatusColors[slip.status]} text-white font-normal`}
-                        >
-                          {paySlipStatusLabels[slip.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewPaySlip(slip)}>
-                              Lihat Detail
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditPaySlip(slip)}>
-                              Edit
-                            </DropdownMenuItem>
-                            {slip.status === "draft" && (
-                              <DropdownMenuItem onClick={() => handleIssuePaySlip(slip)}>
-                                Terbitkan
-                              </DropdownMenuItem>
-                            )}
-                            {slip.status === "issued" && (
-                              <DropdownMenuItem onClick={() => handleMarkAsPaid(slip)}>
-                                Tandai Dibayar
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem>
-                              <Download className="mr-2 h-4 w-4" />
-                              Unduh PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              className="text-red-500" 
-                              onClick={() => handleDeletePaySlipClick(slip)}
-                            >
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <PaySlipTable 
+            paySlips={filteredPaySlips}
+            onViewPaySlip={handleViewPaySlip}
+            onEditPaySlip={handleEditPaySlip}
+            onDeletePaySlip={handleDeletePaySlipClick}
+            onIssuePaySlip={handleIssuePaySlip}
+            onMarkAsPaid={handleMarkAsPaid}
+          />
         </TabsContent>
       </Tabs>
 
@@ -738,52 +225,11 @@ const Payroll: React.FC = () => {
       />
 
       {/* Bulk Payment Result Dialog */}
-      <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Hasil Proses Pembayaran Massal</DialogTitle>
-            <DialogDescription>
-              Berikut adalah ringkasan proses pembayaran gaji massal.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {bulkPaymentResult && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <div className="text-sm text-gray-500">Total Diproses</div>
-                  <div className="text-lg font-bold">{bulkPaymentResult.totalProcessed} Karyawan</div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <div className="text-sm text-gray-500">Total Nilai</div>
-                  <div className="text-lg font-bold">{bulkPaymentResult.totalAmount}</div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50 p-4 rounded-md">
-                  <div className="text-sm text-green-500">Berhasil</div>
-                  <div className="text-lg font-bold">{bulkPaymentResult.successCount} Karyawan</div>
-                </div>
-                {bulkPaymentResult.failedCount > 0 && (
-                  <div className="bg-red-50 p-4 rounded-md">
-                    <div className="text-sm text-red-500">Gagal</div>
-                    <div className="text-lg font-bold">{bulkPaymentResult.failedCount} Karyawan</div>
-                  </div>
-                )}
-              </div>
-              
-              <p className="text-sm text-gray-500">
-                Semua slip gaji telah dibuat dan data penggajian telah diperbarui.
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button onClick={handleCloseResultDialog}>Tutup</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentResultDialog 
+        isOpen={isResultDialogOpen}
+        onClose={handleCloseResultDialog}
+        result={bulkPaymentResult}
+      />
     </div>
   );
 };
