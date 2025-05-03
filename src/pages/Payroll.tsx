@@ -32,9 +32,11 @@ const Payroll: React.FC = () => {
     filteredPayroll,
     searchQuery,
     isDeletePayrollDialogOpen,
+    setIsDeletePayrollDialogOpen,
     filteredPaySlips,
     paySlipSearchQuery,
     isDeletePaySlipDialogOpen,
+    setIsDeletePaySlipDialogOpen,
     currentPayrollItem,
     isAddingPayroll,
     currentPaySlip,
@@ -70,12 +72,13 @@ const Payroll: React.FC = () => {
     // Bulk payment handlers
     handleOpenBulkPayment,
     handleCloseBulkPayment,
+    handleProcessBulkPayment,
     handleCloseResultDialog,
   } = usePayroll();
 
-  const handleProcessBulkPayment = (data: BulkPaymentOptions) => {
+  const handleBulkPaymentProcess = (options: BulkPaymentOptions) => {
     // Process the bulk payment
-    const result = processBulkPayment(data);
+    const result = processBulkPayment(options);
     
     // Close the bulk payment modal
     handleCloseBulkPayment();
@@ -221,7 +224,7 @@ const Payroll: React.FC = () => {
       <BulkPaymentModal
         isOpen={isBulkPaymentModalOpen}
         onClose={handleCloseBulkPayment}
-        onProcess={handleProcessBulkPayment}
+        onProcess={handleBulkPaymentProcess}
       />
 
       {/* Bulk Payment Result Dialog */}
