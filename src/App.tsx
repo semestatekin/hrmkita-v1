@@ -22,6 +22,7 @@ import Departments from "./pages/Departments";
 import Designations from "./pages/Designations";
 import Performance from "./pages/Performance";
 import JobPortal from "./pages/JobPortal";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -120,6 +121,14 @@ const App = () => (
                 <PrivateRoute>
                   <Layout>
                     <JobPortal />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/settings" element={
+                <PrivateRoute>
+                  <Layout>
+                    <Settings />
                   </Layout>
                 </PrivateRoute>
               } />
