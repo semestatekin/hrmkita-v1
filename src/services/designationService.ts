@@ -1,6 +1,7 @@
 
 import { Designation } from "@/types/designation";
 import { getLocalData, setLocalData } from "@/utils/localStorage";
+import { getEmployeeCountByPosition } from "./dataIntegrationService";
 
 const DESIGNATIONS_KEY = "hrm_designations";
 
@@ -11,7 +12,7 @@ const initialDesignations: Designation[] = [
     title: "Senior Developer",
     department: "Engineering",
     level: "Senior",
-    employeeCount: 5,
+    employeeCount: 0,
     minSalary: "Rp 12.000.000",
     maxSalary: "Rp 18.000.000",
   },
@@ -20,7 +21,7 @@ const initialDesignations: Designation[] = [
     title: "Junior Developer",
     department: "Engineering",
     level: "Junior",
-    employeeCount: 8,
+    employeeCount: 0,
     minSalary: "Rp 8.000.000",
     maxSalary: "Rp 12.000.000",
   },
@@ -29,7 +30,7 @@ const initialDesignations: Designation[] = [
     title: "UI/UX Designer",
     department: "Design",
     level: "Mid",
-    employeeCount: 4,
+    employeeCount: 0,
     minSalary: "Rp 10.000.000",
     maxSalary: "Rp 15.000.000",
   },
@@ -38,7 +39,7 @@ const initialDesignations: Designation[] = [
     title: "Project Manager",
     department: "Management",
     level: "Senior",
-    employeeCount: 3,
+    employeeCount: 0,
     minSalary: "Rp 15.000.000",
     maxSalary: "Rp 22.000.000",
   },
@@ -47,7 +48,7 @@ const initialDesignations: Designation[] = [
     title: "HR Specialist",
     department: "Human Resources",
     level: "Mid",
-    employeeCount: 2,
+    employeeCount: 0,
     minSalary: "Rp 9.000.000",
     maxSalary: "Rp 14.000.000",
   },
@@ -56,7 +57,7 @@ const initialDesignations: Designation[] = [
     title: "Sales Executive",
     department: "Sales",
     level: "Mid",
-    employeeCount: 5,
+    employeeCount: 0,
     minSalary: "Rp 8.000.000",
     maxSalary: "Rp 16.000.000",
   },
@@ -65,7 +66,7 @@ const initialDesignations: Designation[] = [
     title: "Finance Manager",
     department: "Finance",
     level: "Senior",
-    employeeCount: 1,
+    employeeCount: 0,
     minSalary: "Rp 15.000.000",
     maxSalary: "Rp 20.000.000",
   },
@@ -74,7 +75,7 @@ const initialDesignations: Designation[] = [
     title: "Marketing Specialist",
     department: "Marketing",
     level: "Mid",
-    employeeCount: 3,
+    employeeCount: 0,
     minSalary: "Rp 9.000.000",
     maxSalary: "Rp 13.000.000",
   },
@@ -86,10 +87,16 @@ const initializeLocalStorage = () => {
   }
 };
 
-// CRUD operations
+// CRUD operations with synchronized employee counts
 export const getDesignations = (): Designation[] => {
   initializeLocalStorage();
-  return getLocalData(DESIGNATIONS_KEY, []);
+  const designations = getLocalData(DESIGNATIONS_KEY, []);
+  
+  // Sync employee counts
+  return designations.map(designation => ({
+    ...designation,
+    employeeCount: getEmployeeCountByPosition(designation.title)
+  }));
 };
 
 export const getDesignationById = (id: number): Designation | undefined => {
@@ -98,14 +105,15 @@ export const getDesignationById = (id: number): Designation | undefined => {
 };
 
 export const createDesignation = (designation: Omit<Designation, "id">): Designation => {
-  const designations = getDesignations();
+  const designations = getLocalData(DESIGNATIONS_KEY, []);
   const newId = designations.length > 0 
     ? Math.max(...designations.map(d => d.id)) + 1 
     : 1;
 
   const newDesignation = {
     ...designation,
-    id: newId
+    id: newId,
+    employeeCount: getEmployeeCountByPosition(designation.title)
   };
 
   setLocalData(DESIGNATIONS_KEY, [...designations, newDesignation]);
@@ -113,14 +121,17 @@ export const createDesignation = (designation: Omit<Designation, "id">): Designa
 };
 
 export const updateDesignation = (designation: Designation): void => {
-  const designations = getDesignations();
+  const designations = getLocalData(DESIGNATIONS_KEY, []);
   const updatedDesignations = designations.map((d) =>
-    d.id === designation.id ? designation : d
+    d.id === designation.id ? {
+      ...designation,
+      employeeCount: getEmployeeCountByPosition(designation.title)
+    } : d
   );
   setLocalData(DESIGNATIONS_KEY, updatedDesignations);
 };
 
 export const deleteDesignation = (id: number): void => {
-  const designations = getDesignations();
+  const designations = getLocalData(DESIGNATIONS_KEY, []);
   setLocalData(DESIGNATIONS_KEY, designations.filter((d) => d.id !== id));
 };

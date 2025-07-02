@@ -2,7 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Designation } from "@/types/designation";
+import { getAvailableDepartments } from "@/services/dataIntegrationService";
 import { useState, useEffect } from "react";
 
 interface DesignationFormProps {
@@ -25,6 +27,12 @@ const DesignationForm = ({
     maxSalary: "",
   });
 
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+
+  useEffect(() => {
+    setAvailableDepartments(getAvailableDepartments());
+  }, []);
+
   useEffect(() => {
     if (designation) {
       setFormData(designation);
@@ -43,6 +51,13 @@ const DesignationForm = ({
       return;
     }
     
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -69,24 +84,34 @@ const DesignationForm = ({
       
       <div className="space-y-2">
         <Label htmlFor="department">Departemen</Label>
-        <Input
-          id="department"
-          name="department"
-          value={formData.department}
-          onChange={handleChange}
-          required
-        />
+        <Select value={formData.department} onValueChange={(value) => handleSelectChange("department", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih departemen" />
+          </SelectTrigger>
+          <SelectContent>
+            {availableDepartments.map((dept) => (
+              <SelectItem key={dept} value={dept}>
+                {dept}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="level">Level</Label>
-        <Input
-          id="level"
-          name="level"
-          value={formData.level}
-          onChange={handleChange}
-          required
-        />
+        <Select value={formData.level} onValueChange={(value) => handleSelectChange("level", value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih level" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Junior">Junior</SelectItem>
+            <SelectItem value="Mid">Mid</SelectItem>
+            <SelectItem value="Senior">Senior</SelectItem>
+            <SelectItem value="Lead">Lead</SelectItem>
+            <SelectItem value="Manager">Manager</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">
