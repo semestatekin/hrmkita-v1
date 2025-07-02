@@ -62,10 +62,23 @@ const OKRForm: React.FC<OKRFormProps> = ({ objective, onSuccess, onCancel }) => 
 
   const onSubmit = (data: ObjectiveFormData) => {
     try {
+      // Convert form data to OKRObjective format
+      const objectiveData: Omit<OKRObjective, 'id'> = {
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        assigneeId: data.assigneeId,
+        assigneeName: data.assigneeName,
+        departmentId: data.departmentId,
+        progress: data.progress,
+        status: data.status,
+      };
+
       if (objective) {
-        updateObjective({ ...objective, ...data });
+        updateObjective({ ...objective, ...objectiveData });
       } else {
-        saveObjective(data);
+        saveObjective(objectiveData);
       }
       onSuccess();
     } catch (error) {
