@@ -62,7 +62,7 @@ export const Sidebar = () => {
       <div className="flex h-16 items-center border-b px-6">
         <Link to="/" className="flex items-center gap-2 font-bold">
           <span className="text-xl flex items-center">
-            <UserCircle className="h-6 w-6 text-hrm-primary mr-2" /> HRM System
+            <UserCircle className="h-6 w-6 text-hrm-primary mr-2" /> HRM Kita
           </span>
         </Link>
       </div>

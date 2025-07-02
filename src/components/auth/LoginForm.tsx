@@ -46,7 +46,7 @@ const LoginForm = () => {
   return (
     <div className="w-full max-w-md">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-hrm-primary">HRM System</h1>
+        <h1 className="text-3xl font-bold text-hrm-primary">HRM Kita</h1>
         <p className="mt-2 text-muted-foreground">Login untuk mengakses dashboard</p>
       </div>
       
