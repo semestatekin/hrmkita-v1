@@ -59,11 +59,13 @@ const FormSchema = z.object({
   month: z.string().min(1, "Bulan harus dipilih"),
   year: z.number().int().min(2000, "Tahun harus valid"),
   selectionType: z.enum(["employees", "departments", "positions"]),
-  selectedEmployees: z.array(z.number()).default([]),
-  selectedDepartments: z.array(z.string()).default([]),
-  selectedPositions: z.array(z.string()).default([]),
+  selectedEmployees: z.array(z.number()),
+  selectedDepartments: z.array(z.string()),
+  selectedPositions: z.array(z.string()),
   processDate: z.string().min(1, "Tanggal proses harus diisi"),
 });
+
+type FormData = z.infer<typeof FormSchema>;
 
 const months = [
   { value: "Januari", label: "Januari" },
@@ -85,7 +87,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   
-  const form = useForm<BulkPaymentFormValues>({
+  const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       month: new Date().getMonth() < 11 ? months[new Date().getMonth()].value : months[0].value,
@@ -124,7 +126,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
     setPositions(uniquePositions);
   }, []);
 
-  const onSubmit = (data: BulkPaymentFormValues) => {
+  const onSubmit = (data: FormData) => {
     // Validate if at least one item is selected based on selection type
     let isValid = true;
     let errorMessage = "";

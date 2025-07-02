@@ -33,7 +33,6 @@ interface InlinePaySlipFormProps {
   onCancel: () => void;
 }
 
-// Schema for pay slip form validation
 const paySlipFormSchema = z.object({
   employeeId: z.number().min(1, "ID karyawan diperlukan"),
   employeeName: z.string().min(1, "Nama karyawan diperlukan"),
@@ -79,10 +78,10 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
       totalSalary: initialData.totalSalary,
       status: initialData.status,
       issuedDate: initialData.issuedDate,
-      paidDate: initialData.paidDate,
-      notes: initialData.notes,
+      paidDate: initialData.paidDate || "",
+      notes: initialData.notes || "",
     } : {
-      employeeId: 0,
+      employeeId: 1,
       employeeName: "",
       position: "",
       month: new Date().toLocaleString('id-ID', { month: 'long' }),
@@ -93,6 +92,7 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
       totalSalary: "Rp 0",
       status: "draft",
       issuedDate: currentDate,
+      paidDate: "",
       notes: "",
     },
   });
@@ -217,7 +217,19 @@ const InlinePaySlipForm: React.FC<InlinePaySlipFormProps> = ({
     
     const paySlipWithDetails: PaySlip = {
       id: initialData?.id || 0,
-      ...data,
+      employeeId: data.employeeId,
+      employeeName: data.employeeName,
+      position: data.position,
+      month: data.month,
+      year: data.year,
+      baseSalary: data.baseSalary,
+      allowances: data.allowances,
+      deductions: data.deductions,
+      totalSalary: data.totalSalary,
+      status: data.status,
+      issuedDate: data.issuedDate,
+      paidDate: data.paidDate || undefined,
+      notes: data.notes || undefined,
       attendanceRecord,
       deductionDetails
     };
