@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -63,9 +62,7 @@ const FormSchema = z.object({
   selectedDepartments: z.array(z.string()),
   selectedPositions: z.array(z.string()),
   processDate: z.string().min(1, "Tanggal proses harus diisi"),
-});
-
-type FormData = z.infer<typeof FormSchema>;
+}) satisfies z.ZodType<BulkPaymentFormValues>;
 
 const months = [
   { value: "Januari", label: "Januari" },
@@ -87,7 +84,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   
-  const form = useForm<FormData>({
+  const form = useForm<BulkPaymentFormValues>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       month: new Date().getMonth() < 11 ? months[new Date().getMonth()].value : months[0].value,
@@ -126,7 +123,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
     setPositions(uniquePositions);
   }, []);
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: BulkPaymentFormValues) => {
     // Validate if at least one item is selected based on selection type
     let isValid = true;
     let errorMessage = "";

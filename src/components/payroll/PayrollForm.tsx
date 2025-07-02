@@ -1,4 +1,3 @@
-
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -35,15 +34,25 @@ const payrollFormSchema = z.object({
   date: z.string().min(1, { message: "Tanggal diperlukan" }),
 });
 
+type PayrollFormData = z.infer<typeof payrollFormSchema>;
+
 const PayrollForm: React.FC<PayrollFormProps> = ({
   initialData,
   onSave,
   onCancel,
 }) => {
-  const form = useForm<PayrollItem>({
+  const form = useForm<PayrollFormData>({
     resolver: zodResolver(payrollFormSchema),
-    defaultValues: initialData || {
-      id: 0, // Will be set on save for new items
+    defaultValues: initialData ? {
+      employee: initialData.employee,
+      position: initialData.position,
+      salary: initialData.salary,
+      bonus: initialData.bonus,
+      deductions: initialData.deductions,
+      total: initialData.total,
+      status: initialData.status,
+      date: initialData.date,
+    } : {
       employee: "",
       position: "",
       salary: "",
@@ -82,8 +91,19 @@ const PayrollForm: React.FC<PayrollFormProps> = ({
     setValue("total", formatToRupiah(totalValue));
   }, [salary, bonus, deductions, setValue]);
 
-  const onSubmit = (data: PayrollItem) => {
-    onSave(data);
+  const onSubmit = (data: PayrollFormData) => {
+    const payrollItem: PayrollItem = {
+      id: initialData?.id || 0,
+      employee: data.employee,
+      position: data.position,
+      salary: data.salary,
+      bonus: data.bonus,
+      deductions: data.deductions,
+      total: data.total,
+      status: data.status,
+      date: data.date,
+    };
+    onSave(payrollItem);
   };
 
   return (

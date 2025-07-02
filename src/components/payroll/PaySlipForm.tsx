@@ -1,4 +1,3 @@
-
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -25,19 +24,21 @@ interface PaySlipFormProps {
 
 // Schema for pay slip form validation
 const paySlipFormSchema = z.object({
-  employeeId: z.number(),
-  employeeName: z.string().min(1, { message: "Nama karyawan diperlukan" }),
-  position: z.string().min(1, { message: "Posisi diperlukan" }),
-  month: z.string().min(1, { message: "Bulan diperlukan" }),
-  year: z.number().int().min(2000, { message: "Tahun harus valid" }),
-  baseSalary: z.string().min(1, { message: "Gaji pokok diperlukan" }),
-  allowances: z.string().min(1, { message: "Tunjangan diperlukan" }),
-  deductions: z.string().min(1, { message: "Potongan diperlukan" }),
-  totalSalary: z.string().min(1, { message: "Total gaji diperlukan" }),
+  employeeId: z.number().min(1, "ID karyawan diperlukan"),
+  employeeName: z.string().min(1, "Nama karyawan diperlukan"),
+  position: z.string().min(1, "Posisi diperlukan"),
+  month: z.string().min(1, "Bulan diperlukan"),
+  year: z.number().int().min(2000, "Tahun harus valid"),
+  baseSalary: z.string().min(1, "Gaji pokok diperlukan"),
+  allowances: z.string().min(1, "Tunjangan diperlukan"),
+  deductions: z.string().min(1, "Potongan diperlukan"),
+  totalSalary: z.string().min(1, "Total gaji diperlukan"),
   status: z.enum(["draft", "issued", "paid"]),
-  issuedDate: z.string(),
+  issuedDate: z.string().min(1, "Tanggal terbit diperlukan"),
   paidDate: z.string().optional(),
 });
+
+type PaySlipFormData = z.infer<typeof paySlipFormSchema>;
 
 const PaySlipForm: React.FC<PaySlipFormProps> = ({
   initialData,
@@ -46,11 +47,23 @@ const PaySlipForm: React.FC<PaySlipFormProps> = ({
 }) => {
   const currentDate = new Date().toISOString().split("T")[0];
   
-  const form = useForm<PaySlip>({
+  const form = useForm<PaySlipFormData>({
     resolver: zodResolver(paySlipFormSchema),
-    defaultValues: initialData || {
-      id: 0, // Will be set on save for new items
-      employeeId: Math.floor(Math.random() * 1000) + 1, // For demo, in real app this would be selected
+    defaultValues: initialData ? {
+      employeeId: initialData.employeeId,
+      employeeName: initialData.employeeName,
+      position: initialData.position,
+      month: initialData.month,
+      year: initialData.year,
+      baseSalary: initialData.baseSalary,
+      allowances: initialData.allowances,
+      deductions: initialData.deductions,
+      totalSalary: initialData.totalSalary,
+      status: initialData.status,
+      issuedDate: initialData.issuedDate,
+      paidDate: initialData.paidDate || "",
+    } : {
+      employeeId: Math.floor(Math.random() * 1000) + 1,
       employeeName: "",
       position: "",
       month: new Date().toLocaleString('id-ID', { month: 'long' }),
@@ -61,6 +74,7 @@ const PaySlipForm: React.FC<PaySlipFormProps> = ({
       totalSalary: "",
       status: "draft",
       issuedDate: currentDate,
+      paidDate: "",
     },
   });
 
@@ -96,8 +110,23 @@ const PaySlipForm: React.FC<PaySlipFormProps> = ({
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
   ];
 
-  const onSubmit = (data: PaySlip) => {
-    onSave(data);
+  const onSubmit = (data: PaySlipFormData) => {
+    const paySlip: PaySlip = {
+      id: initialData?.id || 0,
+      employeeId: data.employeeId,
+      employeeName: data.employeeName,
+      position: data.position,
+      month: data.month,
+      year: data.year,
+      baseSalary: data.baseSalary,
+      allowances: data.allowances,
+      deductions: data.deductions,
+      totalSalary: data.totalSalary,
+      status: data.status,
+      issuedDate: data.issuedDate,
+      paidDate: data.paidDate || undefined,
+    };
+    onSave(paySlip);
   };
 
   return (
