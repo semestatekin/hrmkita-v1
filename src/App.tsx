@@ -22,6 +22,7 @@ import Departments from "./pages/Departments";
 import Designations from "./pages/Designations";
 import Performance from "./pages/Performance";
 import JobPortal from "./pages/JobPortal";
+import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -121,6 +122,14 @@ const App = () => (
                 <PrivateRoute>
                   <Layout>
                     <JobPortal />
+                  </Layout>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/reports" element={
+                <PrivateRoute>
+                  <Layout>
+                    <Reports />
                   </Layout>
                 </PrivateRoute>
               } />

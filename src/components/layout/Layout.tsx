@@ -31,6 +31,10 @@ const getPageTitle = (pathname: string) => {
       return "Jabatan";
     case "/performance":
       return "Kinerja";
+    case "/job-portal":
+      return "Job Portal";
+    case "/reports":
+      return "Laporan";
     case "/settings":
       return "Pengaturan";
     default:
