@@ -65,10 +65,24 @@ const KPIForm: React.FC<KPIFormProps> = ({ kpi, onSuccess, onCancel }) => {
 
   const onSubmit = (data: KPIFormData) => {
     try {
+      // Convert form data to KPI format
+      const kpiData: Omit<KPI, 'id'> = {
+        title: data.title,
+        description: data.description,
+        targetValue: data.targetValue,
+        currentValue: data.currentValue,
+        unit: data.unit,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        status: data.status,
+        employeeId: data.employeeId,
+        departmentId: data.departmentId,
+      };
+      
       if (kpi) {
-        updateKPI({ ...kpi, ...data });
+        updateKPI({ ...kpi, ...kpiData });
       } else {
-        saveKPI(data);
+        saveKPI(kpiData);
       }
       onSuccess();
     } catch (error) {

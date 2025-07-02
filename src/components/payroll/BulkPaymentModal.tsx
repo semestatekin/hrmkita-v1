@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -58,11 +59,13 @@ const FormSchema = z.object({
   month: z.string().min(1, "Bulan harus dipilih"),
   year: z.number().int().min(2000, "Tahun harus valid"),
   selectionType: z.enum(["employees", "departments", "positions"]),
-  selectedEmployees: z.array(z.number()),
-  selectedDepartments: z.array(z.string()),
-  selectedPositions: z.array(z.string()),
+  selectedEmployees: z.array(z.number()).default([]),
+  selectedDepartments: z.array(z.string()).default([]),
+  selectedPositions: z.array(z.string()).default([]),
   processDate: z.string().min(1, "Tanggal proses harus diisi"),
-}) satisfies z.ZodType<BulkPaymentFormValues>;
+});
+
+type FormData = z.infer<typeof FormSchema>;
 
 const months = [
   { value: "Januari", label: "Januari" },
@@ -84,7 +87,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [positions, setPositions] = useState<PositionOption[]>([]);
   
-  const form = useForm<BulkPaymentFormValues>({
+  const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       month: new Date().getMonth() < 11 ? months[new Date().getMonth()].value : months[0].value,
@@ -123,7 +126,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
     setPositions(uniquePositions);
   }, []);
 
-  const onSubmit = (data: BulkPaymentFormValues) => {
+  const onSubmit = (data: FormData) => {
     // Validate if at least one item is selected based on selection type
     let isValid = true;
     let errorMessage = "";
@@ -144,7 +147,18 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
       return;
     }
 
-    onProcess(data);
+    // Convert to the expected interface
+    const bulkPaymentData: BulkPaymentFormValues = {
+      month: data.month,
+      year: data.year,
+      selectionType: data.selectionType,
+      selectedEmployees: data.selectedEmployees,
+      selectedDepartments: data.selectedDepartments,
+      selectedPositions: data.selectedPositions,
+      processDate: data.processDate,
+    };
+
+    onProcess(bulkPaymentData);
   };
 
   return (

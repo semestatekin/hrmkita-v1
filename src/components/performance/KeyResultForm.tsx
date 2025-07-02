@@ -68,12 +68,23 @@ const KeyResultForm: React.FC<KeyResultFormProps> = ({
     try {
       // Calculate progress based on current vs target value
       const calculatedProgress = Math.min(Math.round((data.currentValue / data.targetValue) * 100), 100);
-      const formData = { ...data, progress: calculatedProgress };
+      
+      // Convert form data to KeyResult format
+      const keyResultData: Omit<KeyResult, 'id'> = {
+        objectiveId: data.objectiveId,
+        title: data.title,
+        description: data.description,
+        targetValue: data.targetValue,
+        currentValue: data.currentValue,
+        unit: data.unit,
+        progress: calculatedProgress,
+        status: data.status,
+      };
 
       if (keyResult) {
-        updateKeyResult({ ...keyResult, ...formData });
+        updateKeyResult({ ...keyResult, ...keyResultData });
       } else {
-        saveKeyResult(formData);
+        saveKeyResult(keyResultData);
       }
       onSuccess();
     } catch (error) {
