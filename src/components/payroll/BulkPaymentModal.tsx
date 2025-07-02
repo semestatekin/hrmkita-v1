@@ -56,13 +56,13 @@ export interface BulkPaymentFormValues {
 }
 
 const FormSchema = z.object({
-  month: z.string({ required_error: "Bulan harus dipilih" }),
-  year: z.number({ required_error: "Tahun harus diisi" }),
+  month: z.string().min(1, "Bulan harus dipilih"),
+  year: z.number().int().min(2000, "Tahun harus valid"),
   selectionType: z.enum(["employees", "departments", "positions"]),
-  selectedEmployees: z.array(z.number()).optional(),
-  selectedDepartments: z.array(z.string()).optional(),
-  selectedPositions: z.array(z.string()).optional(),
-  processDate: z.string({ required_error: "Tanggal proses harus diisi" }),
+  selectedEmployees: z.array(z.number()).default([]),
+  selectedDepartments: z.array(z.string()).default([]),
+  selectedPositions: z.array(z.string()).default([]),
+  processDate: z.string().min(1, "Tanggal proses harus diisi"),
 });
 
 const months = [
@@ -129,13 +129,13 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
     let isValid = true;
     let errorMessage = "";
 
-    if (data.selectionType === "employees" && (!data.selectedEmployees || data.selectedEmployees.length === 0)) {
+    if (data.selectionType === "employees" && data.selectedEmployees.length === 0) {
       isValid = false;
       errorMessage = "Pilih minimal satu karyawan";
-    } else if (data.selectionType === "departments" && (!data.selectedDepartments || data.selectedDepartments.length === 0)) {
+    } else if (data.selectionType === "departments" && data.selectedDepartments.length === 0) {
       isValid = false;
       errorMessage = "Pilih minimal satu departemen";
-    } else if (data.selectionType === "positions" && (!data.selectedPositions || data.selectedPositions.length === 0)) {
+    } else if (data.selectionType === "positions" && data.selectedPositions.length === 0) {
       isValid = false;
       errorMessage = "Pilih minimal satu jabatan";
     }
@@ -264,7 +264,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                 field.onChange([]);
                               }
                             }}
-                            checked={field.value?.length === employees.length}
+                            checked={field.value.length === employees.length}
                           />
                           <label htmlFor="select-all-employees" className="ml-2 text-sm font-medium">
                             Pilih Semua
@@ -278,12 +278,12 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                   id={`employee-${employee.id}`}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      field.onChange([...(field.value || []), employee.id]);
+                                      field.onChange([...field.value, employee.id]);
                                     } else {
-                                      field.onChange((field.value || []).filter(id => id !== employee.id));
+                                      field.onChange(field.value.filter(id => id !== employee.id));
                                     }
                                   }}
-                                  checked={field.value?.includes(employee.id) || false}
+                                  checked={field.value.includes(employee.id)}
                                 />
                                 <label htmlFor={`employee-${employee.id}`} className="ml-2 text-sm flex flex-col">
                                   <span className="font-medium">{employee.name}</span>
@@ -320,7 +320,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                 field.onChange([]);
                               }
                             }}
-                            checked={field.value?.length === departments.length}
+                            checked={field.value.length === departments.length}
                           />
                           <label htmlFor="select-all-departments" className="ml-2 text-sm font-medium">
                             Pilih Semua
@@ -334,12 +334,12 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                   id={`department-${department.value}`}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      field.onChange([...(field.value || []), department.value]);
+                                      field.onChange([...field.value, department.value]);
                                     } else {
-                                      field.onChange((field.value || []).filter(dept => dept !== department.value));
+                                      field.onChange(field.value.filter(dept => dept !== department.value));
                                     }
                                   }}
-                                  checked={field.value?.includes(department.value) || false}
+                                  checked={field.value.includes(department.value)}
                                 />
                                 <label htmlFor={`department-${department.value}`} className="ml-2 text-sm">
                                   {department.label}
@@ -375,7 +375,7 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                 field.onChange([]);
                               }
                             }}
-                            checked={field.value?.length === positions.length}
+                            checked={field.value.length === positions.length}
                           />
                           <label htmlFor="select-all-positions" className="ml-2 text-sm font-medium">
                             Pilih Semua
@@ -389,12 +389,12 @@ const BulkPaymentModal: React.FC<BulkPaymentModalProps> = ({ isOpen, onClose, on
                                   id={`position-${position.value}`}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      field.onChange([...(field.value || []), position.value]);
+                                      field.onChange([...field.value, position.value]);
                                     } else {
-                                      field.onChange((field.value || []).filter(pos => pos !== position.value));
+                                      field.onChange(field.value.filter(pos => pos !== position.value));
                                     }
                                   }}
-                                  checked={field.value?.includes(position.value) || false}
+                                  checked={field.value.includes(position.value)}
                                 />
                                 <label htmlFor={`position-${position.value}`} className="ml-2 text-sm">
                                   {position.label}
