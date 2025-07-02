@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -17,14 +16,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Plus, Edit, Trash2 } from 'lucide-react';
 import { KPI, statusColors, statusLabels } from '@/types/performance';
 import { getKPIs, deleteKPI } from '@/services/performanceService';
 import { toast } from "sonner";
+import KPIForm from './KPIForm';
 
 const KPIList: React.FC = () => {
   const [kpis, setKpis] = useState<KPI[]>(getKPIs());
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingKPI, setEditingKPI] = useState<KPI | undefined>(undefined);
 
   const handleDelete = (id: string) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus KPI ini?')) {
@@ -32,6 +35,28 @@ const KPIList: React.FC = () => {
       setKpis(getKPIs());
       toast.success('KPI berhasil dihapus');
     }
+  };
+
+  const handleEdit = (kpi: KPI) => {
+    setEditingKPI(kpi);
+    setIsDialogOpen(true);
+  };
+
+  const handleAdd = () => {
+    setEditingKPI(undefined);
+    setIsDialogOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setKpis(getKPIs());
+    setIsDialogOpen(false);
+    setEditingKPI(undefined);
+    toast.success(editingKPI ? 'KPI berhasil diperbarui' : 'KPI berhasil ditambahkan');
+  };
+
+  const handleFormCancel = () => {
+    setIsDialogOpen(false);
+    setEditingKPI(undefined);
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,100 +99,122 @@ const KPIList: React.FC = () => {
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Indikator Kinerja Utama (KPI)</CardTitle>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Tambah KPI
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input 
-              placeholder="Cari KPI..." 
-              className="pl-9" 
-              value={searchTerm}
-              onChange={handleSearch}
-            />
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Indikator Kinerja Utama (KPI)</CardTitle>
+          <Button onClick={handleAdd}>
+            <Plus className="mr-2 h-4 w-4" /> Tambah KPI
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input 
+                placeholder="Cari KPI..." 
+                className="pl-9" 
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="table-container">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Judul KPI</TableHead>
-                <TableHead>Target</TableHead>
-                <TableHead>Pencapaian</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Periode</TableHead>
-                <TableHead>Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredKPIs.length > 0 ? (
-                filteredKPIs.map((kpi) => (
-                  <TableRow key={kpi.id}>
-                    <TableCell className="font-medium">
-                      <div>
-                        <div className="font-medium">{kpi.title}</div>
-                        <div className="text-sm text-gray-500">{kpi.description}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{formatValue(kpi.targetValue, kpi.unit)}</TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>{formatValue(kpi.currentValue, kpi.unit)}</span>
-                          <span>{getProgressPercent(kpi.currentValue, kpi.targetValue)}%</span>
+          <div className="table-container">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Judul KPI</TableHead>
+                  <TableHead>Target</TableHead>
+                  <TableHead>Pencapaian</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Periode</TableHead>
+                  <TableHead>Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredKPIs.length > 0 ? (
+                  filteredKPIs.map((kpi) => (
+                    <TableRow key={kpi.id}>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-medium">{kpi.title}</div>
+                          <div className="text-sm text-gray-500">{kpi.description}</div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-blue-500 h-2 rounded-full"
-                            style={{ width: `${getProgressPercent(kpi.currentValue, kpi.targetValue)}%` }}
-                          ></div>
+                      </TableCell>
+                      <TableCell>{formatValue(kpi.targetValue, kpi.unit)}</TableCell>
+                      <TableCell>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>{formatValue(kpi.currentValue, kpi.unit)}</span>
+                            <span>{getProgressPercent(kpi.currentValue, kpi.targetValue)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-500 h-2 rounded-full"
+                              style={{ width: `${getProgressPercent(kpi.currentValue, kpi.targetValue)}%` }}
+                            ></div>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`${statusColors[kpi.status]} text-white`}>
-                        {statusLabels[kpi.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(kpi.startDate)} - {formatDate(kpi.endDate)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleDelete(kpi.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`${statusColors[kpi.status]} text-white`}>
+                          {statusLabels[kpi.status]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {formatDate(kpi.startDate)} - {formatDate(kpi.endDate)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleEdit(kpi)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleDelete(kpi.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-6">
+                      {searchTerm ? 'Tidak ada KPI yang sesuai dengan pencarian' : 'Belum ada data KPI'}
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-6">
-                    {searchTerm ? 'Tidak ada KPI yang sesuai dengan pencarian' : 'Belum ada data KPI'}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingKPI ? 'Edit KPI' : 'Tambah KPI Baru'}
+            </DialogTitle>
+          </DialogHeader>
+          <KPIForm
+            kpi={editingKPI}
+            onSuccess={handleFormSuccess}
+            onCancel={handleFormCancel}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
