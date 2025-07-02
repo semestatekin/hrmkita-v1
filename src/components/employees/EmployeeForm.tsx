@@ -12,6 +12,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvailableDepartments, getAvailablePositions } from "@/services/dataIntegrationService";
 
 interface EmployeeFormProps {
   employee?: Employee;
@@ -40,6 +41,14 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  const [availablePositions, setAvailablePositions] = useState<string[]>([]);
+
+  // Load available departments and positions
+  useEffect(() => {
+    setAvailableDepartments(getAvailableDepartments());
+    setAvailablePositions(getAvailablePositions());
+  }, []);
 
   useEffect(() => {
     if (employee) {
@@ -241,25 +250,41 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="position">Jabatan</Label>
-          <Input
-            id="position"
-            name="position"
-            value={formData.position}
-            onChange={handleChange}
-            required
-          />
+          <Label htmlFor="department">Departemen</Label>
+          <Select 
+            value={formData.department} 
+            onValueChange={(value) => handleSelectChange("department", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih departemen" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDepartments.map((dept) => (
+                <SelectItem key={dept} value={dept}>
+                  {dept}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="department">Departemen</Label>
-          <Input
-            id="department"
-            name="department"
-            value={formData.department}
-            onChange={handleChange}
-            required
-          />
+          <Label htmlFor="position">Jabatan</Label>
+          <Select 
+            value={formData.position} 
+            onValueChange={(value) => handleSelectChange("position", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih jabatan" />
+            </SelectTrigger>
+            <SelectContent>
+              {availablePositions.map((position) => (
+                <SelectItem key={position} value={position}>
+                  {position}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
