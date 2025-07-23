@@ -24,6 +24,7 @@ import Performance from "./pages/Performance";
 import JobPortal from "./pages/JobPortal";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import SelfService from "./pages/SelfService";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -139,6 +140,12 @@ const App = () => (
                   <Layout>
                     <Settings />
                   </Layout>
+                </PrivateRoute>
+              } />
+              
+              <Route path="/self-service" element={
+                <PrivateRoute>
+                  <SelfService />
                 </PrivateRoute>
               } />
               

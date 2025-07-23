@@ -187,6 +187,11 @@ export const Sidebar = () => {
             Peran
           </SidebarLink>
 
+          {/* Self Service - Top Level */}
+          <SidebarLink href="/self-service" icon={UserCircle}>
+            Self Service
+          </SidebarLink>
+
           {/* Laporan - Top Level */}
           <SidebarLink href="/reports" icon={FileText}>
             Laporan
