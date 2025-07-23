@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { AuthProvider } from "./contexts/AuthContext";
+import { EmployeeAuthProvider } from "./contexts/EmployeeAuthContext";
 import { PrivateRoute } from "./components/auth/PrivateRoute";
+import { EmployeePrivateRoute } from "./components/auth/EmployeePrivateRoute";
 import { ThemeProvider } from "next-themes";
 
 // Import all pages
@@ -25,6 +27,7 @@ import JobPortal from "./pages/JobPortal";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import SelfService from "./pages/SelfService";
+import EmployeeLogin from "./pages/EmployeeLogin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,9 +38,11 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
+          <EmployeeAuthProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/employee-login" element={<EmployeeLogin />} />
               
               <Route path="/" element={
                 <PrivateRoute>
@@ -144,14 +149,15 @@ const App = () => (
               } />
               
               <Route path="/self-service" element={
-                <PrivateRoute>
+                <EmployeePrivateRoute>
                   <SelfService />
-                </PrivateRoute>
+                </EmployeePrivateRoute>
               } />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+        </EmployeeAuthProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

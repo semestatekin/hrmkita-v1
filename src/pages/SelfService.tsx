@@ -14,7 +14,7 @@ import {
   XCircle,
   ChevronRight
 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useEmployeeAuth } from "@/contexts/EmployeeAuthContext";
 import { getEmployees } from "@/services/employeeService";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -33,14 +33,18 @@ interface SalaryRecord {
 }
 
 const SelfService: React.FC = () => {
-  const { user } = useAuth();
+  const { employee, getEmployeeData } = useEmployeeAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'attendance' | 'salary' | 'performance' | 'profile'>('dashboard');
 
-  // Mock data
-  const employee = getEmployees().find(emp => emp.name.toLowerCase().includes(user?.username || '')) || getEmployees()[0];
+  // Get employee data
+  const employeeData = getEmployeeData();
+  
+  if (!employeeData) {
+    return <div>Loading...</div>;
+  }
   
   const attendanceHistory: AttendanceRecord[] = [
     { date: '2024-01-23', checkIn: '08:00', checkOut: '17:00', status: 'present' },
@@ -278,15 +282,15 @@ const SelfService: React.FC = () => {
       <Card className="p-6">
         <div className="flex flex-col items-center text-center space-y-4">
           <Avatar className="w-24 h-24">
-            <AvatarImage src={employee.avatar} />
+            <AvatarImage src={employeeData.avatar} />
             <AvatarFallback className="text-2xl">
-              {employee.name.split(' ').map(n => n[0]).join('')}
+              {employeeData.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h4 className="text-xl font-bold">{employee.name}</h4>
-            <p className="text-gray-600">{employee.position}</p>
-            <p className="text-sm text-gray-500">{employee.department}</p>
+            <h4 className="text-xl font-bold">{employeeData.name}</h4>
+            <p className="text-gray-600">{employeeData.position}</p>
+            <p className="text-sm text-gray-500">{employeeData.department}</p>
           </div>
         </div>
       </Card>
@@ -294,20 +298,20 @@ const SelfService: React.FC = () => {
       <Card className="p-4 space-y-3">
         <div className="flex justify-between">
           <span className="text-gray-600">Email</span>
-          <span className="font-medium">{employee.email}</span>
+          <span className="font-medium">{employeeData.email}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Telepon</span>
-          <span className="font-medium">{employee.phone}</span>
+          <span className="font-medium">{employeeData.phone}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Bergabung</span>
-          <span className="font-medium">{format(new Date(employee.joinDate), 'dd MMM yyyy', { locale: id })}</span>
+          <span className="font-medium">{format(new Date(employeeData.joinDate), 'dd MMM yyyy', { locale: id })}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Status</span>
-          <Badge className={`${getStatusColor(employee.status)} text-white`}>
-            {employee.status === 'active' ? 'Aktif' : employee.status === 'inactive' ? 'Tidak Aktif' : 'Cuti'}
+          <Badge className={`${getStatusColor(employeeData.status)} text-white`}>
+            {employeeData.status === 'active' ? 'Aktif' : employeeData.status === 'inactive' ? 'Tidak Aktif' : 'Cuti'}
           </Badge>
         </div>
       </Card>
@@ -332,12 +336,12 @@ const SelfService: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">Self Service</h1>
-            <p className="text-sm text-gray-600">Selamat datang, {employee.name}</p>
+            <p className="text-sm text-gray-600">Selamat datang, {employeeData.name}</p>
           </div>
           <Avatar className="w-10 h-10">
-            <AvatarImage src={employee.avatar} />
+            <AvatarImage src={employeeData.avatar} />
             <AvatarFallback>
-              {employee.name.split(' ').map(n => n[0]).join('')}
+              {employeeData.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
         </div>
